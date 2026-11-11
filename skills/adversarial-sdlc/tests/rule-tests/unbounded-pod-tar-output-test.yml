@@ -1,0 +1,7 @@
+---
+id: unbounded-pod-tar-output
+valid:
+  - stream_exec(run.pod, ["tar", "-C", "/", "-czf", "-", p], cap)
+invalid:
+  - out = kubectl("exec", run.pod, "--", "tar", "-C", "/", "-cf",
+    "-", p, timeout=1800)

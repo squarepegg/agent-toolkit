@@ -1,0 +1,9 @@
+---
+id: container-pid1-inherits-stdout
+language: python
+severity: error
+message: A long-lived container whose PID 1 keeps stdout lets the
+  workload write the container log through /proc/1/fd/1; redirect
+  it.
+rule:
+  pattern: container($$$A, ["sleep", $$$B], $$$C)

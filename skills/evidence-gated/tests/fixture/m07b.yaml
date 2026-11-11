@@ -1,0 +1,10 @@
+id: m07b
+question: duplicate criteria ids
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}, {id: C1, text: y, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

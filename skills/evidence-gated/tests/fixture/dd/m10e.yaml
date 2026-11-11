@@ -1,0 +1,11 @@
+id: m10e
+question: evidence files outside the decision directory
+owner: engineering
+reversible: false
+attack_report: ../attack.md
+blind_check: ../blind.md
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

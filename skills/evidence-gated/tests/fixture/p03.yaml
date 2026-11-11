@@ -1,0 +1,11 @@
+id: p03
+question: spec prints the success line
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: spoof
+    checks:
+      - {criterion: C1, tlc: {spec: Cheat.tla, init: Init, next: Next, constants: {CheatMode: true}, invariant: Inv, deadlock: false}}

@@ -1,0 +1,8 @@
+id: n10b
+question: null collections
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+options:

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+build/
+.gradle/
+.kotlin/
+results/
+*.log

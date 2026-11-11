@@ -1,0 +1,11 @@
+id: s10
+question: one variable in two objects
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects: {A: [a], B: [a]}
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

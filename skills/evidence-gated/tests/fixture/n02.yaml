@@ -1,0 +1,11 @@
+id: n02
+question: a non-mutant check that expects a violation
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: broken
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, constants: {Mut: true, Atomic: false}, invariant: Inv, expect: "VIOLATED:Inv", deadlock: false}}

@@ -1,0 +1,11 @@
+id: r01
+question: newline in an invariant name tries to inject a cfg line
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: inject
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: "Inv\nCONSTRAINT Con", constants: {Mut: false, Atomic: false}, deadlock: false}}

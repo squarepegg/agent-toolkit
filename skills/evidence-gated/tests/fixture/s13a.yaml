@@ -1,0 +1,10 @@
+id: s13a
+question: a regex whose group 1 does not take part
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo b 5", regex: 'a (\d+)|b (?:\d+)', op: "<=", value: 9}}]

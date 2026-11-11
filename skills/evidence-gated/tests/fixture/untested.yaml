@@ -1,0 +1,15 @@
+id: untested
+question: One tested option and one declared-only option.
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+  - {id: C2, text: "rate at most 1%", kind: data}
+options:
+  - id: measured
+    checks:
+      - {criterion: C2, data: {name: rate, cmd: "pwd >/dev/null; test -f Toy.tla && echo rate 0.004", regex: 'rate ([\d.]+)', op: "<=", value: 0.01}}
+  - id: declared
+    checks:
+      - {criterion: C2, declared: "no rate"}

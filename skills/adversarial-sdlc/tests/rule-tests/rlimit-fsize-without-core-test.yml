@@ -1,0 +1,8 @@
+---
+id: rlimit-fsize-without-core
+valid:
+  - "def main():\n    resource.setrlimit(resource.RLIMIT_CORE, (0,\
+    \ 0))\n    resource.setrlimit(resource.RLIMIT_FSIZE, (limit, limit))"
+invalid:
+  - "def main():\n    resource.setrlimit(resource.RLIMIT_FSIZE, (limit,\
+    \ limit))"

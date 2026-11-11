@@ -1,0 +1,8 @@
+---
+id: tar-extract-to-root
+language: python
+severity: error
+message: Extracting an untrusted archive into "/" makes containment
+  checks meaningless; extract into a fresh staging directory.
+rule:
+  pattern: $T.extractall("/", $$$)

@@ -1,0 +1,25 @@
+id: n11
+question: single variable spec through the lint
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects:
+  X: [x]
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: one
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Vac.tla
+      init: Init
+      next: Next
+      constants: {Cap: 2}
+      invariant: InvReal
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: VacMut.tla, invariant: InvReal}
+  lint: {}

@@ -1,0 +1,7 @@
+---
+id: predictable-temp-name
+valid:
+  - fd, tmp = tempfile.mkstemp(dir=os.path.dirname(status))
+invalid:
+  - "with open(status + \".tmp\", \"w\", encoding=\"utf-8\") as f:\n\
+    \    f.write(str(rc))"

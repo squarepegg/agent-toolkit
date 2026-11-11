@@ -1,0 +1,6 @@
+# Overrides on top of detekt's default config. Locked after the tests phase.
+style:
+  MaxLineLength:
+    maxLineLength: 140
+  MagicNumber:
+    active: false

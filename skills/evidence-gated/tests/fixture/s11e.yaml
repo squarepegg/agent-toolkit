@@ -1,0 +1,13 @@
+id: s11e
+question: yaml anchors under x- keys, a non-bool deadlock, non-string fields
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+x-ok: &ok {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: anchored
+    checks:
+      - {criterion: C1, tlc: *ok}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyMut.tla, invariant: Inv}}

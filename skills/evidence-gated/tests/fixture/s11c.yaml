@@ -1,0 +1,12 @@
+id: s11c
+question: spoofed error lines printed by the mutant spec
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: o
+    checks:
+      - {criterion: C1, tlc: {spec: Sp.tla, init: Init, next: Next, invariant: Inv, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: SpMut.tla, invariant: Inv}}

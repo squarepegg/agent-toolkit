@@ -1,0 +1,8 @@
+---
+id: container-pid1-inherits-stdout
+valid:
+  - load = container("load", uid, image, idle(deadline), m, "500m",
+    mem)
+invalid:
+  - load = container("load", LOAD_UID, image, ["sleep", str(deadline)],
+    m, "500m", mem)

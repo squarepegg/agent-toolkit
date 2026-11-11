@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""sdlc-check COMMAND [ARGS...]: run COMMAND in this role's warm k8s runner pod instead of here.
+
+Run from anywhere in the role's workspace. Prints the command's output as it arrives and exits with its exit code;
+97 when no broker answers (the k8s backend is not configured or not reachable): it never falls back to running here.
+The result is advisory, like any check a role makes; only the orchestrator's gate counts.
+"""
+import json
+import os
+import shlex
+import sys
+import time
+import uuid
+from pathlib import Path
+
+
+def workspace() -> Path:
+    env = os.environ.get("SDLC_REMOTE_WS")
+    if env and (Path(env) / ".sdlc-remote").is_dir():
+        return Path(env)
+    p = Path.cwd().resolve()
+    for d in (p, *p.parents):
+        if (d / ".sdlc-remote").is_dir():
+            return d
+    sys.exit("sdlc-check: no .sdlc-remote/ in this workspace (no check broker for this role)")
+
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 2
+    ws = workspace()
+    rem = ws / ".sdlc-remote"
+    t0 = time.monotonic()
+    while not (rem / "ready").exists():  # the broker is still starting its pod
+        if (rem / "unavailable").exists():
+            print(f"sdlc-check: no runner: {(rem / 'unavailable').read_text().strip()}", file=sys.stderr)
+            return 97
+        if time.monotonic() - t0 > float(os.environ.get("SDLC_REMOTE_START_TIMEOUT", "600")):
+            print("sdlc-check: no broker answered", file=sys.stderr)
+            return 97
+        time.sleep(1)
+    rid = uuid.uuid4().hex
+    cwd = os.path.relpath(Path.cwd().resolve(), ws.resolve())
+    if cwd.startswith(".."):
+        print("sdlc-check: run it from inside the workspace", file=sys.stderr)
+        return 2
+    tmp = rem / "req" / f".{rid}.json"
+    tmp.write_text(json.dumps({"id": rid, "cmd": shlex.join(argv), "cwd": cwd}))
+    os.replace(tmp, rem / "req" / f"{rid}.json")
+    res, out = rem / "res" / f"{rid}.json", rem / "res" / f"{rid}.log"
+    pos = 0
+    limit = float(os.environ.get("SDLC_REMOTE_TIMEOUT", "3600"))
+    while True:
+        if out.exists():
+            with open(out, "rb") as f:
+                f.seek(pos)
+                chunk = f.read()
+            if chunk:
+                sys.stdout.buffer.write(chunk)
+                sys.stdout.flush()
+                pos += len(chunk)
+        if res.exists():
+            continue_reading = out.exists() and out.stat().st_size > pos
+            if not continue_reading:
+                return int(json.loads(res.read_text()).get("exit", 97))
+        elif time.monotonic() - t0 > limit:
+            print("sdlc-check: no result in time", file=sys.stderr)
+            return 97
+        time.sleep(0.3)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

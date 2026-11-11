@@ -1,0 +1,8 @@
+---
+id: xml-parse-raw-bytes
+valid:
+  - "def parse(path):\n    data = Path(path).read_bytes()\n    text\
+    \ = data.decode(\"utf-8\")\n    return ET.fromstring(text)"
+invalid:
+  - "def parse(path):\n    data = Path(path).read_bytes()\n    return\
+    \ ET.fromstring(data)"

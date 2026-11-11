@@ -1,0 +1,8 @@
+---
+id: unbounded-read-of-pod-file
+language: python
+severity: error
+message: cat of a file the workload can write (or link) streams without
+  bound into memory; read a bounded prefix (head -c).
+rule:
+  pattern: kubectl("exec", $$$A, "cat", $$$B)

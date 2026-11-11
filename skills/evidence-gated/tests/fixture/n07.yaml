@@ -1,0 +1,12 @@
+id: n07
+question: a TBD threshold on the other option
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: ready
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]
+  - id: unfinished
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: TBD}}]

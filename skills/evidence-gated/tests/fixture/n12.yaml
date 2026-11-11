@@ -1,0 +1,10 @@
+id: n12
+question: a data command writes into the tree it runs in
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: writer
+    checks: [{criterion: C1, data: {name: r, cmd: "echo q 1 > side-effect.txt; echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

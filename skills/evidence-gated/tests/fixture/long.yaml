@@ -1,0 +1,26 @@
+id: long
+question: lint on a state with a multi-line value
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects:
+  A: [x]
+  B: [f]
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: wide
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Long.tla
+      init: Init
+      next: Next
+      invariant: Inv
+      constants: {Cap: 1}
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: LongMut.tla, invariant: Inv}
+  lint: {}

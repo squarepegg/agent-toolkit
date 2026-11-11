@@ -1,0 +1,14 @@
+---
+id: env-forward-by-prefix
+language: python
+severity: error
+message: Forwarding host variables by name prefix hands over whatever
+  credentials live there; use an explicit allowlist.
+rule:
+  pattern: $K.startswith($$$)
+  inside:
+    kind: for_statement
+    has:
+      pattern: os.environ.items()
+      stopBy: end
+    stopBy: end

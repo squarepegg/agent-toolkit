@@ -1,0 +1,12 @@
+id: m10b
+question: irreversible decision with one trivial data check
+owner: engineering
+reversible: false
+root: .
+attack_report: attack.md
+blind_check: blind.md
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: lockin
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

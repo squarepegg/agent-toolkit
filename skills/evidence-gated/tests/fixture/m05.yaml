@@ -1,0 +1,11 @@
+id: m05
+question: a mutant with no real check to mutate
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: onlymutant
+    checks:
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyMut.tla, invariant: Inv}}

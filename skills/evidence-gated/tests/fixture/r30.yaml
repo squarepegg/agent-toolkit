@@ -1,0 +1,24 @@
+id: r30
+question: ToyInv rewrites the invariant itself; ToyBig changes too many lines; Toy2 is identical
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: edited-inv
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyInv.tla, invariant: Inv}}
+  - id: too-big
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyBig.tla, invariant: Inv}}
+  - id: identical
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: Toy2.tla, invariant: Inv}}
+  - id: same-file
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: Toy.tla, invariant: Inv}}

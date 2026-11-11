@@ -1,0 +1,9 @@
+---
+id: mktime-minus-timezone
+language: python
+severity: error
+message: time.mktime(...) - time.timezone is wrong during daylight
+  saving time; parse UTC with calendar.timegm or a timezone-aware
+  datetime.
+rule:
+  pattern: time.mktime($$$) - time.timezone

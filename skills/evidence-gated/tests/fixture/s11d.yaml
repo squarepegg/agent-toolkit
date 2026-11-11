@@ -1,0 +1,24 @@
+id: s11d
+question: three options, two tie at the top
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects: {A: [a], B: [b], channel: [ch]}
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: split1
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyMut.tla, invariant: Inv}}
+    lint: {}
+  - id: split2
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyMut.tla, invariant: Inv}}
+    lint: {}
+  - id: atomic
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: true}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyMut.tla, invariant: Inv}}
+    lint: {}

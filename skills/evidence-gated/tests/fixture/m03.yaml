@@ -1,0 +1,14 @@
+id: m03
+question: option with no check for criterion C1
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}, {id: C2, text: y, kind: data}]
+options:
+  - id: lazy
+    checks:
+      - {criterion: C2, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}
+  - id: bad
+    checks:
+      - {criterion: C2, data: {name: r, cmd: "echo r 9", regex: 'r (\d+)', op: "<=", value: 5}}

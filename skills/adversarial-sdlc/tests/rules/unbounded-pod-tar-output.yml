@@ -1,0 +1,8 @@
+---
+id: unbounded-pod-tar-output
+language: python
+severity: error
+message: Reading the pod's tar output through a buffering call holds
+  it all in memory before any size check; stream it with a cap.
+rule:
+  pattern: kubectl("exec", $$$A, "tar", $$$B, "-cf", $$$C)

@@ -1,0 +1,16 @@
+---
+id: python-in-sandbox-not-isolated
+language: python
+severity: error
+message: Python started inside the sandbox without -I reads the working
+  directory and environment first; the code under test can replace
+  its imports.
+rule:
+  kind: list
+  has:
+    kind: string
+    regex: ^"(/usr/bin/)?python3"$
+  not:
+    has:
+      kind: string
+      regex: ^"-I"$

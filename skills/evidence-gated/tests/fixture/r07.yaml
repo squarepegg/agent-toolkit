@@ -1,0 +1,13 @@
+id: r07
+question: the spec EXTENDS a module that was never committed (written at test time)
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: ext
+  checks:
+  - criterion: C1
+    tlc: {spec: Ext.tla, init: Init, next: Next, invariant: Inv, deadlock: false}

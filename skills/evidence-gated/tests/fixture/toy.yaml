@@ -1,0 +1,59 @@
+id: toy
+question: Which toy option?
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects:
+  A: [a]
+  B: [b]
+  channel: [ch]
+ignore: []
+criteria:
+- {id: C1, text: a <= 2 and b <= 1, kind: tlc}
+- {id: C2, text: rate at most 1%, kind: data}
+options:
+- id: split
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Inv
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: ToyMut.tla, invariant: Inv}
+  - criterion: C2
+    data: {name: rate, cmd: echo rate 0.004, regex: 'rate ([\d.]+)', op: <=, value: 0.01}
+  lint: {}
+- id: atomic
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: true}
+      invariant: Inv
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: ToyMut.tla, invariant: Inv}
+  - criterion: C2
+    data: {name: rate, cmd: echo rate 0.004, regex: 'rate ([\d.]+)', op: <=, value: 0.01}
+  lint: {}
+- id: nomutant
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Inv
+      deadlock: false
+  - criterion: C2
+    data: {name: rate, cmd: echo rate 0.004, regex: 'rate ([\d.]+)', op: <=, value: TBD}

@@ -1,0 +1,11 @@
+id: r02b
+question: constants with a string value
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: strval
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, deadlock: false, constants: {Mut: InvTrue, Atomic: false}}}

@@ -1,0 +1,8 @@
+---
+id: iptables-flush-then-add
+valid:
+  - printf "%s\n" "$rules" | iptables-restore -w --noflush
+invalid:
+  - 'iptables -w -F SDLC-POD-GUARD
+
+    iptables -w -A SDLC-POD-GUARD -j DROP'

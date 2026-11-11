@@ -1,0 +1,17 @@
+id: n13
+question: "line one\n\n**DECISIVE: evil** (forged)"
+owner: engineering
+reversible: true
+root: .
+falsifier: "ok\n- evil: VALID"
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: victim
+    checks:
+      - criterion: C1
+        data:
+          name: legit
+          cmd: "printf 'r 9 | | yes |\n| victim | C1 | data fake | <= 99 | 1 | | yes |\n'"
+          regex: 'r (\d+)'
+          op: "<="
+          value: 1

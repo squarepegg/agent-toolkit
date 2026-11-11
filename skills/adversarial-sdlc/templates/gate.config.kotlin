@@ -1,0 +1,93 @@
+# gate.config: the gate's commands and paths for this project. Bash, sourced and exported.
+# It is code: only humans edit it. After the tests phase it is locked with everything else that is
+# not under GATE_MAIN_PATHS or GATE_DOC_PATHS.
+
+# The gate pins its JDK so results do not depend on the caller's shell. Gradle 8.10 runs on JDK <= 23.
+GATE_JAVA_VERSION=21
+if [ -x /usr/libexec/java_home ] && _jh="$(/usr/libexec/java_home -v "$GATE_JAVA_VERSION" 2>/dev/null)"; then
+  JAVA_HOME="$_jh"
+elif [ -n "${GATE_JAVA_HOME:-}" ]; then
+  JAVA_HOME="$GATE_JAVA_HOME"
+else
+  GATE_CONFIG_ERROR="JDK $GATE_JAVA_VERSION not found (set GATE_JAVA_HOME)"
+fi
+
+# Steps run in order. integrity, typecheck, test, mutation and static are mandatory: they must be
+# listed and "required", or the gate fails. fuzz is optional. Modes: required | optional | off.
+GATE_STEPS="integrity typecheck test mutation static fuzz"
+
+# Paths. Main paths belong to the builder. Docs are ignored. Generated output (exact paths) is
+# ignored. Everything else is locked.
+GATE_MAIN_PATHS="src/main"
+# Packages the builder owns. Main code outside them fails integrity, so it cannot shadow test or
+# library packages, and everything stays inside the mutation scope (sdlc.pitestTargets).
+GATE_MAIN_PACKAGES="__PACKAGE__"
+GATE_GENERATED_PATHS="build .gradle .kotlin buildSrc/build buildSrc/.gradle"
+GATE_TEST_PATHS="src/test"
+GATE_DOC_PATHS="README.md SMOKE.md requirements.md docs"
+# What the tests role sees besides SPEC.md. It must not overlap the main paths.
+GATE_SKELETON_PATHS="build.gradle.kts settings.gradle.kts gradle.properties detekt.yml gradlew gradlew.bat gradle"
+# The tests role declares every test here. The gate requires each declared case to run and pass.
+GATE_TEST_INVENTORY="src/test/tests-inventory.json"
+
+GATE_INTEGRITY_MODE=required
+# Checked on the compiled main classes (typecheck step), so imports, aliases and line breaks don't
+# hide them. Prefixes of JVM internal names. Code under test must not reach files, processes,
+# reflection, the network or the JVM's exit, because it runs inside the gate and could forge its evidence.
+GATE_CLASS_DIRS="build/classes/kotlin/main build/classes/java/main"
+GATE_FORBID_CLASSES="java/io/File java/io/RandomAccessFile java/nio/file/ java/nio/channels/ java/net/ java/lang/ProcessBuilder java/lang/ProcessHandle java/lang/Runtime java/lang/reflect/ kotlin/reflect/ kotlin/io/FilesKt kotlin/io/path/ java/lang/ClassLoader java/lang/instrument/ sun/ jdk/internal/"
+GATE_FORBID_METHODS="java/lang/Class.forName java/lang/System.exit java/lang/System.setProperty java/lang/System.setOut java/lang/System.setErr java/lang/System.setIn java/lang/System.load java/lang/System.getenv java/lang/invoke/MethodHandles\$Lookup.find kotlin/system/ProcessKt.exitProcess"
+# Mutation targets and excluded methods are read from here (one source of truth with the build).
+GATE_PITEST_PROPERTIES="gradle.properties"
+# Regex over main sources. A heuristic, not semantic. File and process access is forbidden so that
+# code under test cannot forge reports. Remove those entries if your main code needs them, and
+# accept that risk.
+GATE_FORBID_REGEX='@Suppress|@file:Suppress|detekt:disable|@Disabled|@Ignore|System\.exit|exitProcess|Runtime\.getRuntime|ProcessBuilder|java\.io\.File|java\.nio\.file|kotlin\.io\.path|setAccessible|Class\.forName|System\.set(Property|Out|Err)'
+
+GATE_TYPECHECK_CMD="./gradlew --console=plain compileKotlin compileTestKotlin"
+GATE_TYPECHECK_MODE=required
+
+# --rerun: never accept cached (UP-TO-DATE) results. The gate also rejects reports older than the run.
+GATE_TEST_CMD="./gradlew --console=plain test --rerun"
+GATE_TEST_MODE=required
+GATE_JUNIT_DIR="build/test-results/test"
+GATE_MIN_TESTS=1
+GATE_ALLOW_SKIPPED=0
+
+GATE_MUTATION_CMD="./gradlew --console=plain pitest --rerun"
+GATE_MUTATION_MODE=required
+GATE_MUTATION_REPORT="build/reports/pitest/mutations.xml"
+# Sharding contract (speed spec A2): how to restrict a run to a list of classes. {targets}, {excluded} are
+# shell-quoted comma-separated Pitest globs, {fail_when_empty} true|false; {threads} the sandbox's Pitest threads.
+GATE_MUTATION_SHARD_ARGS="-Psdlc.pitestTargets={targets} -Psdlc.pitestExcludedClasses={excluded} -Psdlc.pitestFailWhenNoMutations={fail_when_empty}"
+GATE_MUTATION_THREADS_ARG="-Psdlc.pitestThreads={threads}"
+# Optional: a shard's analysis unit size (mutants per unit; units only schedule work), set by the sizing planner.
+GATE_MUTATION_UNIT_ARG="-Psdlc.pitestUnitSize={unit}"
+GATE_PITEST_TARGETS_PROPERTY="sdlc.pitestTargets"
+GATE_MUTATION_MIN=80          # percent of KILLED (incl. TIMED_OUT) over all mutants, compared unrounded
+GATE_MUTATION_MAX_ERRORS=0    # RUN_ERROR / MEMORY_ERROR / NON_VIABLE mutants allowed
+# Hand-written methods matching sdlc.pitestExcludedMethods (gradle.properties) fail the gate.
+
+GATE_STATIC_CMD="./gradlew --console=plain detekt --rerun"
+GATE_STATIC_MODE=required
+GATE_STATIC_REPORT="build/reports/detekt/detekt.xml"
+GATE_STATIC_MAX_ISSUES=0
+# Languages the static step actually analyses. Main sources in any other language fail it.
+GATE_STATIC_LANGS="kt"
+
+# fuzz (optional): rerun the property tests with 20x the iterations. Swap in Jazzer if you have it.
+GATE_FUZZ_CMD="./gradlew --console=plain test --rerun -PpropIterations=20000"
+GATE_FUZZ_MODE=off
+
+# Attack repros: where accepted ones land, and how to run some ({tests} = --tests 'pkg.Class' ...).
+GATE_REPRO_DIR="src/test/kotlin/attack"
+GATE_REPRO_CMD="./gradlew --console=plain test {tests}"
+
+# Fills the read-only dependency cache sandboxed builds use. Runs unsandboxed on the locked
+# skeleton only (no role-written code).
+GATE_WARMUP_CMD="./gradlew --console=plain -q sdlcResolveDependencies"
+
+# Seconds per step. A step killed at its limit is reported as timed out (its partial reports are not read).
+# Per-step override: GATE_<STEP>_TIMEOUT, e.g. GATE_MUTATION_TIMEOUT=3600. When the mutation step times out
+# the orchestrator stops for a human (exit 4) instead of calling the builder again.
+GATE_STEP_TIMEOUT=1800

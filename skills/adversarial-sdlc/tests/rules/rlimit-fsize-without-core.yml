@@ -1,0 +1,15 @@
+---
+id: rlimit-fsize-without-core
+language: python
+severity: error
+message: Limiting file size without RLIMIT_CORE=0 leaves core dumps
+  to be written outside the limits.
+rule:
+  pattern: resource.setrlimit(resource.RLIMIT_FSIZE, $$$)
+  not:
+    inside:
+      kind: function_definition
+      has:
+        pattern: resource.RLIMIT_CORE
+        stopBy: end
+      stopBy: end

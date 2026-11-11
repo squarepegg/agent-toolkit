@@ -1,0 +1,11 @@
+id: s12a
+question: negative constant
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: o
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false, Neg: -1}}}

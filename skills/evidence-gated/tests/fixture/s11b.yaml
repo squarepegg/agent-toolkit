@@ -1,0 +1,12 @@
+id: s11b
+question: the mutant spec was never committed (written at test time)
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: o
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: Untracked.tla, invariant: Inv}}

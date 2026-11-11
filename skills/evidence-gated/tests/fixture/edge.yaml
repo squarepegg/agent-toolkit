@@ -1,0 +1,82 @@
+id: edge
+question: Data-check edge cases and TLC verdict kinds.
+owner: product
+reversible: false
+root: .
+inputs: [input.txt]
+falsifier: none, fixture
+objects:
+  A: [a]
+  B: [b]
+ignore: [ch]
+criteria:
+- {id: C1, text: x, kind: data}
+options:
+- id: eq
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: cat input.txt, regex: q (\d+), op: ==, value: 7}
+- id: eqfail
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: echo q 9, regex: q (\d+), op: ==, value: 7}
+- id: anchored
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: 'printf ''junk q 1
+
+        q 2
+
+        ''', regex: ^q (\d+), op: ==, value: 2}
+- id: lt
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: cat input.txt, regex: q (\d+), op: <, value: 7}
+- id: ge
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: cat input.txt, regex: q (\d+), op: '>=', value: 7}
+- id: gt
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: cat input.txt, regex: q (\d+), op: '>', value: 7}
+- id: noregex
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: echo hello, regex: q (\d+), op: <=, value: 1}
+- id: notnum
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: echo q x1, regex: q (\S+), op: <=, value: 1}
+- id: exit3
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: echo boom; exit 3, regex: q (\d+), op: <=, value: 1}
+- id: timeout
+  checks:
+  - criterion: C1
+    data: {name: n, cmd: sleep 5, regex: q (\d+), op: <=, value: 1, timeout: 1}
+- id: nover
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Nope
+      deadlock: false
+- id: ignorelint
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Inv
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: ToyMut.tla, invariant: Inv}
+  lint: {}

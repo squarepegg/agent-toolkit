@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "adversarial-sdlc findings",
+  "type": "object",
+  "required": [
+    "findings"
+  ],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "spec_refs",
+          "test_file",
+          "expected",
+          "actual"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "F1, F2, ... unique in this round"
+          },
+          "title": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "category": {
+            "enum": [
+              "invariant",
+              "failure-mode",
+              "acceptance",
+              "boundary",
+              "crash-retry-replay",
+              "concurrency",
+              "resource",
+              "spec-gap"
+            ]
+          },
+          "spec_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(INV|FM|AC|NG|ESC)-[0-9]+$"
+            }
+          },
+          "test_file": {
+            "type": "string",
+            "description": "path relative to the workspace root"
+          },
+          "test_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string",
+            "description": "what the spec requires"
+          },
+          "actual": {
+            "type": "string",
+            "description": "what the code does; quote the failure"
+          },
+          "escalation_tags": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "concurrency",
+                "auth",
+                "data-migration",
+                "exactly-once"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "attempted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "attacks tried that found nothing"
+    }
+  }
+}

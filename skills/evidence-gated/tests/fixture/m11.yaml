@@ -1,0 +1,31 @@
+id: m11
+question: two TLC criteria, mutant for only one
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+- {id: C1, text: x, kind: tlc}
+- {id: C3, text: y, kind: tlc}
+options:
+- id: partial
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Inv
+      deadlock: false
+  - criterion: C3
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Inv
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: ToyMut.tla, invariant: Inv}

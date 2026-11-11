@@ -1,0 +1,15 @@
+id: nota
+question: Data-only decision. Needs no TLA2TOOLS_JAR.
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+  - {id: C2, text: "rate at most 1%", kind: data}
+options:
+  - id: low
+    checks:
+      - {criterion: C2, data: {name: rate, cmd: "echo rate 0.004", regex: 'rate ([\d.]+)', op: "<=", value: 0.01}}
+  - id: high
+    checks:
+      - {criterion: C2, data: {name: rate, cmd: "echo rate 0.5", regex: 'rate ([\d.]+)', op: "<=", value: 0.01}}

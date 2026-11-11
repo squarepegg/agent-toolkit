@@ -1,0 +1,9 @@
+id: rev
+question: reversible is a string
+owner: engineering
+reversible: "no"
+root: .
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

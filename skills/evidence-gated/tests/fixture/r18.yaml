@@ -1,0 +1,13 @@
+id: r18
+question: one check entry with both tlc and data keys
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: both
+    checks:
+      - criterion: C1
+        tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, deadlock: false, constants: {Mut: false, Atomic: false}}
+        data: {name: r, cmd: "echo r 9", regex: 'r (\d+)', op: "<=", value: 1}

@@ -1,0 +1,11 @@
+id: s13d
+question: single evidence file with reversible true
+owner: engineering
+reversible: true
+root: .
+attack_report: attack.md
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

@@ -1,0 +1,6 @@
+---
+id: tar-extract-to-root
+valid:
+  - t.extractall(stage, members=members, filter="data")
+invalid:
+  - t.extractall("/", members=members, filter="data")

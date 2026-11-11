@@ -1,0 +1,11 @@
+id: z0
+question: a spec with no initial state
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: empty
+    checks:
+      - {criterion: C1, tlc: {spec: Init0.tla, init: Init, next: Next, invariant: Inv, deadlock: false}}

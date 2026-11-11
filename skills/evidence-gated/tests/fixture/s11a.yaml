@@ -1,0 +1,13 @@
+id: s11a
+question: integer-list constants and <= at the boundary
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}, {id: C2, text: y, kind: data}]
+options:
+  - id: lst
+    checks:
+      - {criterion: C1, tlc: {spec: Lst.tla, init: Init, next: Next, invariant: Inv, constants: {S: [0, 1]}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: LstMut.tla, invariant: Inv}}
+      - {criterion: C2, data: {name: r, cmd: "echo r 5", regex: 'r (\d+)', op: "<=", value: 5}}

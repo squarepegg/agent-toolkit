@@ -1,0 +1,3 @@
+# Only egress.py is COPYd into an image; keep the build context minimal.
+*
+!egress.py

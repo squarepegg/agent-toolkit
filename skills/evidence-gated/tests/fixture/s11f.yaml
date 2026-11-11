@@ -1,0 +1,13 @@
+id: s11f
+question: bad types
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, deadlock: "no"}}
+      - {criterion: C1, declared: 5}
+      - {criterion: C1, data: {name: [1], cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 1, timeout: true}}

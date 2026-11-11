@@ -1,0 +1,19 @@
+id: n05b
+question: lint measures the checked model
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects:
+  A: [a]
+  B: [b]
+  channel: [ch]
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: nolint
+  checks:
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: ToyMut.tla, invariant: Inv}
+  lint: {}

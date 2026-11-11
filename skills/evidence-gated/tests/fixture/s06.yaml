@@ -1,0 +1,12 @@
+id: s06
+question: directories as evidence
+owner: engineering
+reversible: false
+root: .
+attack_report: .
+blind_check: dd
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

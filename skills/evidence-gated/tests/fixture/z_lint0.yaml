@@ -1,0 +1,25 @@
+id: z_lint0
+question: lint on a graph with no transitions
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects:
+  X: [x]
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: still
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Vac.tla
+      init: Init
+      next: Next
+      constants: {Cap: 0}
+      invariant: InvReal
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: VacMut.tla, invariant: InvReal}
+  lint: {}

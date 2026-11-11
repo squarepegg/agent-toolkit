@@ -1,0 +1,11 @@
+id: r02c
+question: a user-written cfg key
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: cfgkey
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, deadlock: false, cfg: split.cfg}}

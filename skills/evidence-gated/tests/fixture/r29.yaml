@@ -1,0 +1,11 @@
+id: r29
+question: only one of the two evidence files
+owner: engineering
+reversible: false
+root: .
+attack_report: attack.md
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: o
+    checks: [{criterion: C1, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

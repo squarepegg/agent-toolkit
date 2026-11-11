@@ -1,0 +1,8 @@
+---
+id: env-forward-by-prefix
+valid:
+  - "for k in os.environ.get(\"SDLC_K8S_PASSENV\", \"\").split():\n\
+    \    out[k] = os.environ[k]"
+invalid:
+  - "for k, v in os.environ.items():\n    if k.startswith((\"SDLC_\"\
+    , \"GRADLE_\")):\n        out[k] = v"

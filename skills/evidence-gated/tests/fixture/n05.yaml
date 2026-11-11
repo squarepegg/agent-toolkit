@@ -1,0 +1,27 @@
+id: n05
+question: lint measures the checked model
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects:
+  A: [a]
+  B: [b]
+  channel: [ch]
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: atomic
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: true}
+      invariant: Inv
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: ToyMut.tla, invariant: Inv}
+  lint: {}

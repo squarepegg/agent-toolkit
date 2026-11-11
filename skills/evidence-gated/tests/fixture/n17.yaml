@@ -1,0 +1,12 @@
+id: n17
+question: orphan process and bad utf-8
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: orphan
+    checks: [{criterion: C1, data: {name: r, cmd: "@@ORPHAN@@", regex: 'r (\d+)', op: "<=", value: 5, timeout: 1}}]
+  - id: utf
+    checks: [{criterion: C1, data: {name: r, cmd: "printf '\\377\\nr 1\\n'", regex: 'r (\d+)', op: "<=", value: 5}}]

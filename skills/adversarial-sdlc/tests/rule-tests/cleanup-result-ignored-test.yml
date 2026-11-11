@@ -1,0 +1,9 @@
+---
+id: cleanup-result-ignored
+valid:
+  - ok = run.cleanup()
+  - "if not run.cleanup():\n    die(\"x\")"
+invalid:
+  - "try:\n    go()\nfinally:\n    run.cleanup()"
+  - "def on_signal(sig, _):\n    run.cleanup()\n    sys.exit(128 +\
+    \ sig)"

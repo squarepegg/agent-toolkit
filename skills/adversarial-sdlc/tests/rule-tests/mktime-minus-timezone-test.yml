@@ -1,0 +1,7 @@
+---
+id: mktime-minus-timezone
+valid:
+  - created = calendar.timegm(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ"))
+invalid:
+  - created = time.mktime(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ"))
+    - time.timezone

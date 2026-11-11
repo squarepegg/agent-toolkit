@@ -1,0 +1,10 @@
+id: m13
+question: comma-grouped numbers
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: grouped
+    checks: [{criterion: C1, data: {name: v, cmd: "echo val 1,234", regex: 'val ([\d,]+)', op: "<=", value: 2000}}]

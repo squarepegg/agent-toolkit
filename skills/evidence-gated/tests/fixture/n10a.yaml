@@ -1,0 +1,10 @@
+id: n10a
+question: yaml booleans and ints as ids
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: no, text: x, kind: data}]
+options:
+  - id: 100
+    checks: [{criterion: no, data: {name: r, cmd: "echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}]

@@ -1,0 +1,12 @@
+id: m01
+question: ok check on a vacuous invariant; no edit of the spec can violate it
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: cheat
+    checks:
+      - {criterion: C1, tlc: {spec: Vac.tla, init: Init, next: Next, invariant: InvTrue, constants: {Cap: 3}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: VacMut.tla, invariant: InvTrue}}

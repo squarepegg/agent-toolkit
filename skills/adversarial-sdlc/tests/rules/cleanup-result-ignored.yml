@@ -1,0 +1,10 @@
+---
+id: cleanup-result-ignored
+language: python
+severity: error
+message: A cleanup whose result is discarded can hide a failed teardown
+  behind a successful result; check it and fail closed.
+rule:
+  pattern: $R.cleanup()
+  inside:
+    kind: expression_statement

@@ -1,0 +1,13 @@
+id: s02
+question: a data command rewrites the spec
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}, {id: C2, text: y, kind: data}]
+options:
+  - id: rewriter
+    checks:
+      - {criterion: C2, data: {name: r, cmd: "echo garbage > Toy.tla; echo r 1", regex: 'r (\d+)', op: "<=", value: 5}}
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: ToyMut.tla, invariant: Inv}}

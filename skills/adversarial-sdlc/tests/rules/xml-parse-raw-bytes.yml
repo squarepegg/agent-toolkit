@@ -1,0 +1,14 @@
+---
+id: xml-parse-raw-bytes
+language: python
+severity: error
+message: Parsing an untrusted report from raw bytes lets a declared
+  encoding re-interpret it; decode as UTF-8 and parse the text.
+rule:
+  pattern: ET.fromstring($D)
+  inside:
+    kind: function_definition
+    has:
+      pattern: $D = $$$X.read_bytes()
+      stopBy: end
+    stopBy: end

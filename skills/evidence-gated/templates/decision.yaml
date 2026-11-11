@@ -1,0 +1,62 @@
+# Decision file for scripts/eval.py. COMMIT IT BEFORE RUNNING: that registers criteria and thresholds.
+# Eval runs on a SNAPSHOT of git HEAD: this file must equal its committed version, and every spec, input and evidence
+# file must be committed. Uncommitted edits cannot change the verdict. Data commands run in a throwaway copy.
+# Filling in a threshold after you have seen the data makes the registration weaker; say so in a comment.
+id: example-decision                # short slug of letters, digits, _ . -
+question: >                         # the choice, as a question to the owner
+  Which option, A or B?
+owner: engineering                  # who decides. Not 'engineering' => the eval only checks options against their requirement.
+reversible: true                    # REQUIRED true/false. true: config / internal layout.
+# false: hard to reverse. Also set both below (two different, non-empty, committed files), else the verdict can never
+# be DECISIVE:
+# attack_report: attack.md          # independent attack round on the surviving options
+# blind_check: blind.md             # independent blind check
+root: .                             # base dir for spec/cfg paths and the working dir of data commands; relative to THIS file
+inputs: []                          # extra files or directories data commands read (e.g. queries/), relative to root. The decision file's own directory is always in the snapshot.
+falsifier: >                        # what observation would show the choice was wrong. Testable, written before the run.
+  Within N weeks more than X% of requests exceed Y.
+
+# Only for lint (simplicity metrics). Maps TLA+ variables to the objects that own them.
+# 'channel' = message channel: sending to it does not count as a second object change.
+objects: {Store: [store], Queue: [q], channel: [ch]}
+ignore: [pc]                        # bookkeeping variables left out of the lint. Every other variable must be mapped.
+
+criteria:                           # written BEFORE options
+  - {id: C1, text: "Share of requests over the cap is at most 1%", kind: data}
+  - {id: C2, text: "Invariant Inv holds under crash and retry", kind: tlc}
+
+options:
+  # --- data-only option: needs no TLA2TOOLS_JAR ---
+  - id: option-a
+    checks:
+      - criterion: C1
+        data:
+          name: over-cap share (%)  # one line, no | or backtick
+          cmd: "echo share 0.4"     # run with bash in `root`. Exit != 0 fails the check.
+          regex: 'share ([\d.]+)'   # group 1 = the number (finite). A regex needs a capture group.
+          op: "<="                  # <= < >= > ==
+          value: 1                  # 'TBD' = option is UNTESTED. timeout: seconds (default 300)
+      - criterion: C2
+        declared: "text only; shown as 'declared (not computed)'. It does not count: C2 has no computed check on this option, so it is UNTESTED."
+
+  # --- TLC option: needs TLA2TOOLS_JAR (a file) and java on PATH ---
+  - id: option-b
+    checks:
+      # You never write a cfg. Eval writes it from the check: init, next, constants and exactly one INVARIANT.
+      # Constants are booleans, integers 0..2^31-1 or lists of such integers; a name that the spec defines with ==
+      # is refused. The invariant must be defined at the top level of the spec file (`Inv == ...` in column 0).
+      # Temporal and action properties are not supported.
+      - criterion: C2
+        tlc: {spec: B.tla, init: Init, next: Next, invariant: Inv, constants: {Limit: 2}, deadlock: true}
+      # Every TLC check needs a MUTANT: a separate spec file, the real spec with a small edit (at most 6 changed
+      # lines, MODULE line excluded; not the invariant's own definition) that breaks the invariant. A mutant names
+      # only `spec` and `invariant`. Init/next, constants and the deadlock flag come from the check above, so the
+      # real check can't be weakened to make the mutant look sensitive. TLC must violate exactly that invariant.
+      - criterion: C2
+        mutant_of: C2
+        tlc: {spec: B-mutant.tla, invariant: Inv}
+      - criterion: C1
+        data: {name: over-cap share (%), cmd: "echo share 3", regex: 'share ([\d.]+)', op: "<=", value: 1}
+    lint: {}                        # measures this option's first passing TLC check: variables, actions, multi-object actions, loc
+# deadlock: false disables TLC's deadlock check (use when the model terminates on purpose).
+# Every criterion needs a computed check (tlc or data with a threshold) on every option, else it is UNTESTED.

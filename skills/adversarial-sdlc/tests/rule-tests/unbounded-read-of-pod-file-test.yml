@@ -1,0 +1,8 @@
+---
+id: unbounded-read-of-pod-file
+valid:
+  - done = kubectl("exec", run.pod, "-c", "run", "--", "head", "-c",
+    "16", ENTRY_STATUS, check=False)
+invalid:
+  - done = kubectl("exec", run.pod, "-c", "run", "--", "cat", ENTRY_STATUS,
+    check=False)

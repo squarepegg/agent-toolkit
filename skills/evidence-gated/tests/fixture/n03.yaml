@@ -1,0 +1,30 @@
+id: n03
+question: two ok checks for one criterion, the second has no mutant
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: rides
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Inv
+      deadlock: false
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: InvTrue
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: ToyMut.tla, invariant: Inv}

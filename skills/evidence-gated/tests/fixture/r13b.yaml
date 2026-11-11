@@ -1,0 +1,12 @@
+id: r13b
+question: invariant named Deadlock; the mutant deadlocks instead
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: collide
+    checks:
+      - {criterion: C1, tlc: {spec: Wr.tla, init: Init, next: Next, invariant: Deadlock, constants: {Stuck: false}, deadlock: true}}
+      - {criterion: C1, mutant_of: C1, tlc: {spec: WrMut.tla, invariant: Deadlock}}

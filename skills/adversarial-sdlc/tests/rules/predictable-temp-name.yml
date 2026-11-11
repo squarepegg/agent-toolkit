@@ -1,0 +1,8 @@
+---
+id: predictable-temp-name
+language: python
+severity: error
+message: A temp file at a predictable name in a workload-writable
+  directory can be a planted link; create it with tempfile.mkstemp.
+rule:
+  pattern: open($P + ".tmp", $$$)

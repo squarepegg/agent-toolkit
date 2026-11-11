@@ -1,0 +1,9 @@
+---
+id: iptables-flush-then-add
+language: bash
+severity: error
+message: Flushing a firewall chain and re-adding rules one by one
+  opens a window without enforcement; replace it atomically
+  with iptables-restore.
+rule:
+  pattern: iptables -w -F $C

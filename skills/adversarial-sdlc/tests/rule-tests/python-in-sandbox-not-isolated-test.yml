@@ -1,0 +1,8 @@
+---
+id: python-in-sandbox-not-isolated
+valid:
+  - PY = ["/usr/bin/python3", "-I", "-S"]
+  - cmd = ["python3", "-I", "entry.py"]
+invalid:
+  - return ["exec", pod, "--", "python3", "-c", src]
+  - create += [image, "python3", "entry.py"]

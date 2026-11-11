@@ -1,0 +1,14 @@
+id: r28
+question: with lint, two tlc checks must use one model
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+objects: {A: [a], B: [b], channel: [ch]}
+criteria: [{id: C1, text: x, kind: tlc}, {id: C2, text: y, kind: tlc}]
+options:
+  - id: two-models
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: true}, deadlock: false}}
+      - {criterion: C2, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, constants: {Mut: false, Atomic: false}, deadlock: false}}
+    lint: {}

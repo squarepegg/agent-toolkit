@@ -1,0 +1,10 @@
+id: m08
+question: inf passes a >= threshold
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: data}]
+options:
+  - id: broken
+    checks: [{criterion: C1, data: {name: cov, cmd: "echo coverage inf", regex: 'coverage (\S+)', op: ">=", value: 90}}]

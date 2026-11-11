@@ -1,0 +1,11 @@
+id: r02
+question: a constant named like an operator defined in the spec
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria: [{id: C1, text: x, kind: tlc}]
+options:
+  - id: override
+    checks:
+      - {criterion: C1, tlc: {spec: Toy.tla, init: Init, next: Next, invariant: Inv, deadlock: false, constants: {Mut: false, Atomic: false, Inv: 1}}}

@@ -1,0 +1,22 @@
+id: n_spec
+question: the mutant is of a different spec file
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: cheat
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Toy.tla
+      init: Init
+      next: Next
+      constants: {Mut: false, Atomic: false}
+      invariant: Inv
+      deadlock: false
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: Toy2.tla, invariant: Inv}

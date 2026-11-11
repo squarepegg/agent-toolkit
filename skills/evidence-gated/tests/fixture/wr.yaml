@@ -1,0 +1,22 @@
+id: wr
+question: a mutant that deadlocks instead of violating the invariant, with the same deadlock flag
+owner: engineering
+reversible: true
+root: .
+falsifier: none, fixture
+criteria:
+- {id: C1, text: x, kind: tlc}
+options:
+- id: wrong
+  checks:
+  - criterion: C1
+    tlc:
+      spec: Wr.tla
+      init: Init
+      next: Next
+      invariant: Inv
+      constants: {Stuck: false}
+      deadlock: true
+  - criterion: C1
+    mutant_of: C1
+    tlc: {spec: WrMut.tla, invariant: Inv}
