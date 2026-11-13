@@ -10,6 +10,7 @@ Personal collection of agent skills, small utilities and benchmarks.
 | `skills/dst` | Deterministic simulation testing: seeded ops, virtual clock, fault injection, seed sweeps, model-vs-real conformance. Kotlin engine plus a Python sketch. |
 | `skills/doubt` | Doubt-driven development: materialize a fresh-context reviewer biased to disprove before a non-trivial decision stands. |
 | `skills/evidence-gated` | Evidence-gated decisions: criteria, computed checks, blind screen, deterministic verdict. |
+| `skills/spec-first` | Interview the user into a checkable spec (code first, one decision at a time, defaults marked assumed), then verify the change with a fresh reviewer that sees only spec + diff + raw output; scripts decide PASS / FAIL / NOT CHECKED. Tests: `tests/test_spec_first.py`, `tests/planted_bugs.py`; live evals: `evals/run_evals.py`. |
 
 Each skill is a directory with a `SKILL.md`, and optionally `roles/`, `scripts/`, `templates/`,
 `reference/` and `examples/`.
@@ -22,6 +23,7 @@ ln -s "$PWD/skills/adversarial-sdlc" ~/.agents/skills/adversarial-sdlc
 ln -s "$PWD/skills/dst"               ~/.agents/skills/deterministic-simulation-testing
 ln -s "$PWD/skills/doubt"             ~/.agents/skills/doubt-driven-development
 ln -s "$PWD/skills/evidence-gated"     ~/.agents/skills/evidence-gated-decisions
+ln -s "$PWD/skills/spec-first"         ~/.agents/skills/spec-first
 
 # Claude Code: link each skill into ~/.claude/skills instead
 ```
