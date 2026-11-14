@@ -1,9 +1,9 @@
 name: skills
 on:
   push:
-    paths: ["skills/**", "scripts/**", "README.md", ".github/workflows/skills.yml"]
+    paths: ["skills/**", "scripts/**", "evals/**", "README.md", ".github/workflows/skills.yml"]
   pull_request:
-    paths: ["skills/**", "scripts/**", "README.md", ".github/workflows/skills.yml"]
+    paths: ["skills/**", "scripts/**", "evals/**", "README.md", ".github/workflows/skills.yml"]
 permissions:
   contents: read
 jobs:
@@ -21,3 +21,5 @@ jobs:
         run: uv run --no-project --python ${{ matrix.python }} scripts/check_skills.py --self-test
       - name: grader + fixture tests
         run: uv run --no-project --python ${{ matrix.python }} scripts/test_skill_tools.py
+      - name: harness-ab tooling (split losslessness, dst_lint planted bugs, graders, verdict rule)
+        run: uv run --no-project --python ${{ matrix.python }} evals/harness-ab/test_harness_ab.py
