@@ -14,6 +14,14 @@ ARXIV = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>http://arxiv.org
 <title>Deterministic   evals for coding agents</title><summary>We benchmark.</summary><published>2026-11-09T00:00:00Z</published></entry></feed>"""
 
 
+S2 = json.dumps({"total": 3, "data": [
+    {"title": "DeepSWE: evaluating coding agents", "abstract": "A benchmark.", "citationCount": 100, "influentialCitationCount": 26,
+     "publicationDate": "2026-07-08", "externalIds": {"ArXiv": "2607.07946"}, "url": "https://www.semanticscholar.org/paper/x"},
+    {"title": "Mutation testing with LLMs", "abstract": None, "citationCount": 12, "influentialCitationCount": 0,
+     "publicationDate": "2026-06-01", "externalIds": {}, "url": "https://www.semanticscholar.org/paper/y"},
+    {"title": "no url", "citationCount": 50, "externalIds": {}}]})
+
+
 class Scout(unittest.TestCase):
     def items(self):
         return scout.parse_github(GH) + scout.parse_hn(HN) + scout.parse_arxiv(ARXIV)
@@ -118,6 +126,46 @@ class Scout(unittest.TestCase):
             self.assertEqual((len(attempts), waits), (1, []), "a 404 is not retried")
         finally:
             urllib.request.urlopen = real
+
+    def test_s2_parse_prefers_arxiv_url_and_keeps_citations(self):
+        ps = scout.parse_s2(S2)
+        self.assertEqual([p["url"] for p in ps], ["https://arxiv.org/abs/2607.07946", "https://www.semanticscholar.org/paper/y"])
+        self.assertEqual((ps[0]["cites"], ps[0]["influential"], ps[0]["source"]), (100, 26, "s2"))
+        self.assertIn("100 cites (26 influential), 2026-07", scout.evidence(ps[0]))
+
+    def test_s2_dedupes_against_arxiv_and_seen(self):
+        items = scout.parse_s2(S2) + scout.parse_arxiv(ARXIV.replace("2611.01234v2", "2607.07946"))
+        r = scout.rank(items, ["benchmark", "agent", "mutation"], set())
+        self.assertEqual(len([i for i in r if i["url"] == "https://arxiv.org/abs/2607.07946"]), 1)
+        self.assertEqual(r[0]["source"], "s2", "the cited copy outranks the uncited arXiv copy")
+        r = scout.rank(items, ["benchmark", "agent", "mutation"], {"https://arxiv.org/abs/2607.07946"})
+        self.assertNotIn("https://arxiv.org/abs/2607.07946", [i["url"] for i in r])
+
+    def test_more_cited_paper_ranks_higher(self):
+        r = scout.rank(scout.parse_s2(S2), ["llm", "agent", "testing", "benchmark"], set())
+        self.assertEqual(r[0]["cites"], 100)
+
+    def test_papers_get_their_own_section_and_top(self):
+        items = scout.add_growth(self.items() + scout.parse_s2(S2), None, "2026-11-14")
+        md = scout.digest(scout.rank(items, ["skill", "benchmark", "mutation"], set()), 1, "2026-11-07", [])
+        repos, papers = md.split("### Papers")
+        self.assertIn("### Repos and posts", repos)
+        self.assertNotIn("| s2 |", repos)
+        self.assertEqual(papers.count("| s2 |") + papers.count("| arxiv |"), 1, "--top applies per section")
+        self.assertEqual(repos.count("| github |") + repos.count("| hn |"), 1)
+
+    def test_s2_source_request(self):
+        seen = {}
+        real = scout.get
+        scout.get = lambda url, headers=None, **k: seen.update(url=url, headers=headers) or S2
+        try:
+            out = scout.fetch({"kind": "s2", "query": "agent + eval", "months": 6, "min_citations": 10, "max": 1}, "2026-11-07")
+        finally:
+            scout.get = real
+        q = dict(__import__("urllib.parse").parse.parse_qsl(seen["url"].split("?", 1)[1]))
+        self.assertEqual((q["sort"], q["minCitationCount"], q["query"]), ("citationCount:desc", "10", "agent + eval"))
+        self.assertTrue(q["publicationDateOrYear"].endswith(":"))
+        self.assertEqual(len(out), 1, "max caps the source")
 
     def test_digest_renders(self):
         items = scout.add_growth(self.items(), None, "2026-11-14")
