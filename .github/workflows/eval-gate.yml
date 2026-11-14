@@ -1,0 +1,23 @@
+name: eval-gate
+# Tier A, no model calls: the deterministic gate, its fake-pi end-to-end path through scripts/skill_ab.py, and the scout.
+on:
+  push:
+    paths: ["evals/**", "scout/**", "scripts/skill_ab.py", "skills/*/evals/**", ".github/workflows/eval-gate.yml"]
+  pull_request:
+    paths: ["evals/**", "scout/**", "scripts/skill_ab.py", "skills/*/evals/**", ".github/workflows/eval-gate.yml"]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
+      - name: gate verdicts, registration, properties, skill_ab -> gate with a fake pi
+        run: uv run --no-project --python ${{ matrix.python }} evals/test_gate.py
+      - name: scout (offline fixtures)
+        run: uv run --no-project --python ${{ matrix.python }} scout/test_scout.py

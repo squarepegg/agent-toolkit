@@ -48,6 +48,26 @@ some need `ast-grep` on `PATH`.
 - `python3 scripts/skill_ab.py <dir> [--samples 3]`: live A/B (costs tokens). It answers `skills/<dir>/evals/probes.json`
   in fresh `pi` sessions, once with only that skill loaded and once with none, and grades with fixed substring groups,
   never a model. Results go to `results/` (gitignored). Measured deltas are in each skill's `evals/README.md`.
+  `--with-path DIR` loads another skill in the `with` arm (same probes); `--out FILE` sets the results file.
+
+### Adopting something new: candidate -> eval -> deterministic gate
+
+| Workflow | When | What | Model calls |
+|---|---|---|---|
+| `skills.yml`, `eval-gate.yml`, `skill-suites.yml` | push/PR | skill checks; `evals/test_gate.py` (verdicts, registration, properties, `skill_ab` -> gate through `evals/fake_pi.py`); `scout/test_scout.py`; the adversarial-sdlc and evidence-gated suites | none |
+| `eval.yml` | PR labelled `eval`, or by hand | each added/changed `evals/candidates/<id>.json`: `evals/run_candidate.py` then `evals/gate.py`; verdict commented on the PR | yes: variable `EVAL_MODEL`, secret `ANTHROPIC_API_KEY` |
+| `scout.yml` | Mondays | `scout/scout.py`: GitHub, HN, arXiv (`scout/sources.json`), minus anything already seen, as a `scout` issue | none |
+
+1. Copy `evals/candidates/_template.json` to `<id>.json`: source, a one-sentence claim, the skill whose probes test it,
+   an optional outside skill pinned to a full commit sha (`fetch` + `with_path`), samples, thresholds.
+2. Commit it before running. The gate refuses a candidate file that differs from HEAD, probes that changed since the
+   run, and an unpinned model.
+3. Open a PR and label it `eval`. Verdicts: `ADOPT` (exit 0); `CEILING`, `NO_DELTA`, `REGRESSION`, `TOO_COSTLY`,
+   `INCONCLUSIVE` (exit 1). Probes marked `"split": "heldout"` must not regress and are never tuned against.
+4. Not adopted: paste the printed line into `evals/negative-results.md` and drop the change.
+
+Local: `EVAL_PI_ARGS='["--model","provider/id"]' python3 evals/run_candidate.py evals/candidates/dst-skill.json`, then
+`python3 evals/gate.py evals/candidates/dst-skill.json results/dst-skill.json`.
 
 ## Snippets
 

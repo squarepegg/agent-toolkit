@@ -1,0 +1,57 @@
+name: eval
+# Tier B, costs tokens. For each added/changed evals/candidates/<id>.json in a PR labelled `eval` (or one given by hand):
+# evals/run_candidate.py (scripts/skill_ab.py, both arms, fresh hermetic pi) then evals/gate.py. Verdict = job result.
+# Needs: repo variable EVAL_MODEL (pinned "provider/id") and the provider's key as a secret (ANTHROPIC_API_KEY here).
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+    inputs:
+      candidate: { description: "evals/candidates/<id>.json", required: true }
+permissions:
+  contents: read
+  pull-requests: write
+concurrency: { group: "eval-${{ github.ref }}", cancel-in-progress: true }
+jobs:
+  gate:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'eval')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      EVAL_PI_ARGS: '["--model", "${{ vars.EVAL_MODEL }}"]'
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm i -g --no-audit --no-fund @earendil-works/pi-coding-agent@1.5.2
+      - name: Which candidates
+        id: pick
+        env: { INPUT_CANDIDATE: "${{ inputs.candidate }}", BASE_REF: "${{ github.base_ref }}" }
+        run: |
+          if [ -n "$INPUT_CANDIDATE" ]; then c="$INPUT_CANDIDATE"
+          else c=$(git diff --name-only --diff-filter=AM "origin/$BASE_REF...HEAD" -- 'evals/candidates/*.json' | grep -v '/_' || true); fi
+          [ -n "$c" ] || echo "::notice::no candidate files changed"
+          echo "list=$(printf '%s' "$c" | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+      - name: Run arms + gate
+        if: steps.pick.outputs.list != ''
+        env: { LIST: "${{ steps.pick.outputs.list }}", EVAL_MODEL: "${{ vars.EVAL_MODEL }}" }
+        run: |
+          [ -n "$EVAL_MODEL" ] || { echo "::error::set repo variable EVAL_MODEL (pinned provider/id)"; exit 2; }
+          rc=0
+          for c in $LIST; do
+            id=$(basename "$c" .json)
+            uv run --no-project --python 3.13 evals/run_candidate.py "$c" --out "results/$id.json" || { rc=2; continue; }
+            uv run --no-project --python 3.13 evals/gate.py "$c" "results/$id.json" --md gate.md || rc=1
+          done
+          [ -f gate.md ] && cat gate.md >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+      - name: Comment verdict on the PR
+        if: always() && github.event_name == 'pull_request' && hashFiles('gate.md') != ''
+        env: { GH_TOKEN: "${{ github.token }}", PR: "${{ github.event.pull_request.number }}" }
+        run: gh pr comment "$PR" --body-file gate.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: eval-results, path: results/, if-no-files-found: ignore }

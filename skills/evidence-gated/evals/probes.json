@@ -1,0 +1,45 @@
+[
+ {
+  "id": "eg-recommended",
+  "q": "In a trade-off table, when may I write '(Recommended)' next to an option? One line.",
+  "expect": [
+   [
+    "decisive"
+   ]
+  ]
+ },
+ {
+  "id": "eg-register",
+  "q": "Before running the evaluation for an architecture decision, what must happen to the decision file? One line.",
+  "expect": [
+   [
+    "commit"
+   ]
+  ]
+ },
+ {
+  "id": "eg-irreversible",
+  "q": "For a hard-to-reverse choice (picking a datastore), which two extra committed files does the decision need before it can be decisive?",
+  "expect": [
+   [
+    "attack"
+   ],
+   [
+    "blind"
+   ]
+  ]
+ },
+ {
+  "id": "eg-requirement-tags",
+  "split": "heldout",
+  "q": "When tagging requirements by source, which tag marks rows that are candidates to drop? Give the tag.",
+  "expect": [
+   [
+    "old-behaviour-only",
+    "old behaviour only",
+    "old-behavior-only",
+    "old behavior only"
+   ]
+  ]
+ }
+]

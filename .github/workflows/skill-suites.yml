@@ -1,0 +1,44 @@
+name: skill-suites
+# Each skill's own deterministic test suite (no model calls).
+on:
+  push:
+    paths: ["skills/adversarial-sdlc/**", "skills/evidence-gated/**", ".github/workflows/skill-suites.yml"]
+  pull_request:
+    paths: ["skills/adversarial-sdlc/**", "skills/evidence-gated/**", ".github/workflows/skill-suites.yml"]
+permissions:
+  contents: read
+jobs:
+  adversarial-sdlc:
+    runs-on: ubuntu-latest   # has kubectl, which k8s_unit_test reads the kubeconfig through
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
+      - name: unit tests (pyyaml + ast-grep for the rule tests)
+        run: |
+          fail=0
+          for t in skills/adversarial-sdlc/tests/*_test.py; do
+            echo "::group::$t"
+            uv run --no-project --python 3.12 --with pyyaml==6.0.2 --with ast-grep-cli==0.39.9 "$t" || fail=1
+            echo "::endgroup::"
+          done
+          exit $fail
+  evidence-gated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TLA2TOOLS_JAR: ${{ github.workspace }}/tla2tools.jar
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pyyaml==6.0.2
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
+      - name: TLA+ tools v1.7.4 (pinned by sha256)
+        run: |
+          curl -sfL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+          echo "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88  tla2tools.jar" | sha256sum -c -
+      - run: bash skills/evidence-gated/tests/eval-test.sh
