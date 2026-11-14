@@ -54,6 +54,8 @@ MUTANTS = [
     ("stale tree ignored", "verdict.py", 'if hashlib.sha256(patch.encode()).hexdigest() != data["diff_sha"]:', 'if False:', "Verdict.test_verdict_stale_tree_blocks_done"),
     ("stale spec ignored", "verdict.py", 'if S.normative_hash(spec) != data["spec_hash"]: blocks', 'if False: blocks', "Verdict.test_verdict_stale_spec_blocks_done"),
     ("reviewer edit allowed", "review.sh", '[ "$before" = "$after" ] ||', 'true ||', "Review.test_review_reviewer_edit_voids_report"),
+    ("claude runner may write", "review.sh", " --disallowedTools Bash Edit Write NotebookEdit\"\n", "\"\n", "Review.test_review_runner_falls_back_to_claude_read_only"),
+    ("pi not preferred", "review.sh", "elif command -v pi >/dev/null 2>&1; then", "elif false; then", "Review.test_review_runner_prefers_pi"),
     ("no round limit", "review.sh", '[ "$n" -le "$MAX" ] ||', 'true ||', "Review.test_review_round_limit"),
     ("brief leaks nothing but drops diff", "review.sh", "  cat \"$DIR/diff.patch\"\n", "", "Review.test_review_brief_holds_only_spec_evidence_diff"),
 ]

@@ -471,6 +471,29 @@ class Review(Base):
         env = self.runner("echo 'Looks great, all requirements pass!'\n")
         rc, out = self.review(env); self.assertEqual(rc, 1); self.assertIn("STATUS: NOT DONE (MISSING 3)", out)
 
+    def fake_cli(self, names):
+        bindir = os.path.join(self.tmp, "bin"); os.makedirs(bindir, exist_ok=True)
+        for name in names:
+            with open(os.path.join(bindir, name), "w") as f: f.write(f"#!/bin/bash\necho \"{name} $*\" > {self.tmp}/argv\ncat >/dev/null\n")
+            os.chmod(os.path.join(bindir, name), 0o755)
+        for tool in ("bash", "git", "python3", "find", "wc", "tr", "cat", "mv", "sed", "dirname", "printf"):
+            p = shutil.which(tool)
+            if p and not os.path.exists(os.path.join(bindir, tool)): os.symlink(p, os.path.join(bindir, tool))
+        env = dict(os.environ, PATH=bindir); env.pop("SPEC_REVIEW_RUNNER", None)
+        return env
+
+    def test_review_runner_prefers_pi(self):
+        self.review(self.fake_cli(["pi", "claude"]))
+        self.assertIn("pi -p --no-session --no-context-files --no-skills --tools read", self.read(os.path.join(self.tmp, "argv")))
+
+    def test_review_runner_falls_back_to_claude_read_only(self):
+        self.review(self.fake_cli(["claude"]))
+        argv = self.read(os.path.join(self.tmp, "argv"))
+        self.assertIn("claude -p --allowedTools Read Grep Glob", argv); self.assertIn("--disallowedTools Bash Edit Write", argv)
+
+    def test_review_runner_missing_is_refused(self):
+        rc, out = self.review(self.fake_cli([])); self.assertEqual(rc, 2); self.assertIn("no reviewer CLI", out)
+
     def test_review_needs_evidence(self):
         shutil.rmtree(self.out); rc, out = self.review(os.environ.copy()); self.assertEqual(rc, 2)
 

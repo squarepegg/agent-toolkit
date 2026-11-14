@@ -64,12 +64,13 @@ size. For a small change, the build and the tests are enough.
 2. `python3 scripts/evidence.py specs/<topic>.md --out "$TMPDIR/spec-first/<topic>"` — runs every command check,
    records literal output, marks manual checks NOT CHECKED, and raises guards (spec changed since accept, existing
    test modified/deleted). The evidence dir must be outside the repo.
-3. `bash scripts/review.sh specs/<topic>.md "$TMPDIR/spec-first/<topic>"` — a fresh process (`pi -p --no-session
-   --no-context-files --no-skills --tools read`, override with `SPEC_REVIEW_RUNNER`) gets only
-   `templates/reviewer-brief.md` + spec + evidence + diff. It voids the report if the reviewer touched the repo,
-   refuses a 4th round, and runs `verdict.py`.
-   In Claude Code set `SPEC_REVIEW_RUNNER` to a headless `claude -p` call limited to read tools (check the flags of your version). If no fresh process is
-   possible, write the report yourself and say in the result that the review was **not independent**.
+3. `bash scripts/review.sh specs/<topic>.md "$TMPDIR/spec-first/<topic>"` — a fresh process gets only
+   `templates/reviewer-brief.md` + spec + evidence + diff, read-only: `pi -p --no-session --no-context-files
+   --no-skills --tools read` if `pi` is on PATH, else `claude -p --allowedTools Read Grep Glob --disallowedTools
+   Bash Edit Write NotebookEdit`; override with `SPEC_REVIEW_RUNNER` (e.g. a different model: cross-model review).
+   It voids the report if the reviewer touched the repo, refuses a 4th round, and runs `verdict.py`.
+   If no fresh process is possible, write the report yourself and say in the result that the review was
+   **not independent**.
 4. `verdict.py` is the verdict: a reviewer can make a row stricter, never looser. A failed covering check is
    FAIL; an unrun one NOT CHECKED; a PASS without a citation that holds (a passing check covering the id, or a
    real line in a changed file; a test file for an edge case) is UNSUPPORTED; stale evidence blocks DONE.
@@ -82,8 +83,9 @@ size. For a small change, the build and the tests are enough.
 
 ## Relation to other skills
 
-- `adversarial-sdlc`: heavyweight, sandboxed roles, mutation gate. An accepted spec here is a good requirements
-  file for `sdlc.sh spec`.
+- `adversarial-sdlc`: heavyweight, sandboxed roles, mutation gate. Escalate there when the component must survive
+  attack: an accepted spec is its requirements file (`sdlc.sh --project <p> spec specs/<topic>.md`); its decisions
+  and edge cases seed the sdlc spec's invariants and failure modes.
 - `doubt-driven-development`: in-flight doubt on one decision; phase C is the end-of-change check.
 - `evidence-gated-decisions`: for design trade-offs surfaced during the interview.
 
