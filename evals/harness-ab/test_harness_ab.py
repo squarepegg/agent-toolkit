@@ -101,6 +101,22 @@ class Split(unittest.TestCase):
         self.assertTrue(split_skill.check(src, out)[0])
 
 
+class ShippedSkills(unittest.TestCase):
+    def test_every_reference_pointer_resolves_also_through_a_symlink_install(self):
+        import re
+        link_dir = tempfile.mkdtemp()
+        for d in sorted(os.listdir(os.path.join(ROOT, "skills"))):
+            src = os.path.join(ROOT, "skills", d); link = os.path.join(link_dir, d); os.symlink(src, link)
+            text = open(os.path.join(link, "SKILL.md")).read()
+            for rel in re.findall(r"`((?:reference|templates|scripts)/[\w./-]+\.(?:md|py|sh|kt|json))`", text):
+                self.assertTrue(os.path.isfile(os.path.join(link, rel)), f"{d}: pointer {rel} does not resolve")
+
+    def test_doubt_is_the_split_layout_and_stays_small(self):
+        d = os.path.join(ROOT, "skills", "doubt"); text = open(os.path.join(d, "SKILL.md")).read()
+        self.assertIn(split_skill.POINTER_HEAD, text); self.assertLessEqual(len(text), 11500)
+        self.assertEqual(len(os.listdir(os.path.join(d, "reference", "sections"))), 5)
+
+
 class Lint(unittest.TestCase):
     def errs(self, text): return dst_lint.lint_text("t.py", text)
 

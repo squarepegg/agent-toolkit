@@ -48,6 +48,12 @@ some need `ast-grep` on `PATH`.
 - `python3 scripts/skill_ab.py <dir> [--samples 3]`: live A/B (costs tokens). It answers `skills/<dir>/evals/probes.json`
   in fresh `pi` sessions, once with only that skill loaded and once with none, and grades with fixed substring groups,
   never a model. Results go to `results/` (gitignored). Measured deltas are in each skill's `evals/README.md`.
+- `python3 scripts/split_skill.py split|check <skill_dir> <out_dir>`: progressive disclosure for a long SKILL.md. Keeps the
+  core sections, moves the rest to `reference/sections/` with one pointer line each; `check` proves the split is lossless.
+  `skills/doubt` is built this way (A/B-proven, see below).
+- `evals/harness-ab/`: pre-registered live A/B of two ideas from arXiv 2609.00006 (load less up front; rules as a lint
+  script). Tooling tests run in CI (`python3 evals/harness-ab/test_harness_ab.py`); the live run costs tokens. Verdicts:
+  `evals/harness-ab/RESULTS.md`; rejected changes: `docs/negative-results.md`.
 
 ## Snippets
 
