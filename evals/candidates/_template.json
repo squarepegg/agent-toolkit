@@ -1,0 +1,10 @@
+{
+ "id": "example-outside-skill",
+ "source": "https://github.com/OWNER/REPO",
+ "claim": "Loading this outside skill answers the dst probes correctly more often than no skill",
+ "skill": "dst",
+ "fetch": {"repo": "https://github.com/OWNER/REPO.git", "ref": "0000000000000000000000000000000000000000"},
+ "with_path": "skills/some-skill",
+ "samples": 3,
+ "min_gain": 2, "ceiling": 0.9, "regress_by": 2, "max_cost_ratio": 1.5, "max_unfinished": 0.1
+}

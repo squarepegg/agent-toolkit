@@ -1,0 +1,67 @@
+[
+ {
+  "id": "dst-model-conformance",
+  "q": "In a deterministic simulation test I replaced a downstream service with a hand-written model. What extra test does that model need, and why? Two sentences.",
+  "expect": [
+   [
+    "conformance"
+   ],
+   [
+    "real"
+   ]
+  ]
+ },
+ {
+  "id": "dst-known-bug",
+  "q": "My simulation shows current behaviour is wrong, but the fix is out of scope for this PR. How should a test that asserts the current behaviour be written? Brief.",
+  "expect": [
+   [
+    "known bug",
+    "knownbug",
+    "known-bug"
+   ]
+  ]
+ },
+ {
+  "id": "dst-pr-tier",
+  "q": "How many seeds should the PR-tier DST seed sweep run, and may it use Docker? One line.",
+  "expect": [
+   [
+    "150"
+   ],
+   [
+    "no docker",
+    "without docker",
+    "not use docker",
+    "no-docker"
+   ]
+  ]
+ },
+ {
+  "id": "dst-mutation",
+  "split": "heldout",
+  "q": "Before I claim a DST property holds, what must I do to that property? One line.",
+  "expect": [
+   [
+    "mutation",
+    "mutant"
+   ]
+  ]
+ },
+ {
+  "id": "dst-reach",
+  "split": "heldout",
+  "q": "My simulator found a bug under a fault it injects. What must the finding also state? One line.",
+  "expect": [
+   [
+    "production can reach",
+    "prod can reach",
+    "reachable in production",
+    "reachable in prod",
+    "can production reach",
+    "whether production",
+    "whether prod"
+   ]
+  ]
+ }
+]

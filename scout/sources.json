@@ -1,0 +1,74 @@
+{
+ "_comment": "Where the weekly scout looks. Prefer primary sources (repos, papers) over feeds. Prune sources that never yield a candidate worth an eval. An item must match a keyword (word start, case-insensitive) to be listed.",
+ "sources": [
+  {
+   "kind": "github",
+   "query": "topic:agent-skills",
+   "min_stars": 20
+  },
+  {
+   "kind": "github",
+   "query": "topic:claude-skills",
+   "min_stars": 20
+  },
+  {
+   "kind": "github",
+   "query": "SKILL.md in:readme agent",
+   "min_stars": 50
+  },
+  {
+   "kind": "github",
+   "query": "topic:llm-evaluation",
+   "min_stars": 100
+  },
+  {
+   "kind": "github",
+   "query": "deterministic simulation testing",
+   "min_stars": 20
+  },
+  {
+   "kind": "hn",
+   "query": "agent skills",
+   "min_points": 50
+  },
+  {
+   "kind": "hn",
+   "query": "coding agent eval",
+   "min_points": 50
+  },
+  {
+   "kind": "hn",
+   "query": "deterministic simulation",
+   "min_points": 50
+  },
+  {
+   "kind": "arxiv",
+   "query": "cat:cs.SE AND abs:agent AND (abs:evaluation OR abs:benchmark)"
+  },
+  {
+   "kind": "arxiv",
+   "query": "cat:cs.SE AND abs:LLM AND (abs:\"property-based\" OR abs:mutation)"
+  }
+ ],
+ "keywords": [
+  "skill",
+  "eval",
+  "benchmark",
+  "adversarial",
+  "red team",
+  "simulation",
+  "deterministic",
+  "property-based",
+  "mutation",
+  "fuzz",
+  "spec",
+  "code review",
+  "refactor",
+  "architecture",
+  "decision record",
+  "fitness function",
+  "coding agent",
+  "claude code",
+  "test"
+ ]
+}
