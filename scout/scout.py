@@ -13,8 +13,11 @@ The weights are a starting guess, not measured. Signals:
   stars/week  GitHub hides stargazer dates, so each digest stores every fetched repo's star count in a hidden
               comment (`<!-- scout-stars {...} -->`, names only, so it never marks anything as seen); the next run
               reads the newest one from --seen and scales the difference to a week. Unknown on a repo's first run.
-  citations   Semantic Scholar batch lookup for arXiv items (citationCount, influentialCitationCount). Unknown, not 0,
-              if the lookup fails. A week-old paper has almost none, so arXiv sources look back further ("days").
+  citations   `s2` sources search Semantic Scholar for papers published in the last `months`, most cited first, with at
+              least `min_citations`: the papers people are building on, not just this week's. Each run lists the top
+              unseen ones, so the first runs work through the backlog. `arxiv` sources (brand-new papers) get the same
+              counts from a batch lookup; unknown, not 0, if it fails.
+Papers and repos/posts are ranked and listed separately (--top each).
 """
 import argparse, datetime, json, math, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
@@ -71,6 +74,17 @@ def parse_hn(text):
     return out
 
 
+def parse_s2(text):
+    out = []
+    for p in json.loads(text).get("data") or []:
+        ax = (p.get("externalIds") or {}).get("ArXiv")
+        out.append({"url": f"https://arxiv.org/abs/{ax}" if ax else p.get("url") or "", "title": p.get("title") or "",
+                    "summary": re.sub(r"\s+", " ", p.get("abstract") or "")[:400], "source": "s2", "pop": 0,
+                    "cites": int(p.get("citationCount") or 0), "influential": int(p.get("influentialCitationCount") or 0),
+                    "date": p.get("publicationDate") or ""})
+    return [i for i in out if i["url"]]
+
+
 def parse_arxiv(text):
     ns = {"a": "http://www.w3.org/2005/Atom"}
     out = []
@@ -100,6 +114,14 @@ def fetch(src, since):
         url = "https://export.arxiv.org/api/query?" + urllib.parse.urlencode(
             {"search_query": q, "sortBy": "submittedDate", "sortOrder": "descending", "max_results": int(src.get("max", 30))})
         return [i for i in parse_arxiv(get(url)) if i["date"] >= since]
+    if kind == "s2":
+        start = (datetime.date.today() - datetime.timedelta(days=int(src.get("months", 6) * 30.5))).isoformat()
+        key = os.environ.get("S2_API_KEY")
+        url = "https://api.semanticscholar.org/graph/v1/paper/search/bulk?" + urllib.parse.urlencode(
+            {"query": q, "fields": "title,url,abstract,citationCount,influentialCitationCount,publicationDate,externalIds",
+             "sort": "citationCount:desc", "publicationDateOrYear": f"{start}:", "minCitationCount": src.get("min_citations", 10),
+             "fieldsOfStudy": "Computer Science"})
+        return parse_s2(get(url, {"x-api-key": key} if key else {}))[:int(src.get("max", 100))]
     raise ValueError(f"unknown source kind {kind}")
 
 
@@ -181,9 +203,9 @@ def evidence(it):
         return f"{k(it['pop'])} stars, " + ("new to snapshot" if it.get("growth") is None else f"+{k(it['growth'])}/wk")
     if it["source"] == "hn":
         return f"{it['pop']} points"
-    if it.get("cites") is None:
-        return "citations unknown"
-    return f"{it['cites']} cites ({it['influential']} influential)"
+    if it["source"] == "s2" or it.get("cites") is not None:
+        return f"{it['cites']} cites ({it['influential']} influential), {it.get('date', '')[:7]}"
+    return "citations unknown"
 
 
 def rank(items, keywords, seen):
@@ -202,14 +224,20 @@ def rank(items, keywords, seen):
     return sorted((i for i in best.values() if i["hits"]), key=lambda i: (-i["score"], i["url"]))
 
 
+PAPERS = ("arxiv", "s2")
+
+
 def digest(ranked, top, since, errors, snap=""):
-    lines = [f"Scout digest since {since}. Not adopted: to test one, add `evals/candidates/<id>.json` (copy `_template.json`), "
-             "commit it, open a PR and label it `eval`.", "", "| score | source | item | signal | matched |", "|---|---|---|---|---|"]
-    for i in ranked[:top]:
-        title = i["title"].replace("|", "/")[:90]
-        lines.append(f"| {i['score']} | {i['source']} | [{title}]({i['url']}) | {evidence(i)} | {', '.join(i['hits'])} |")
-    if not ranked:
-        lines.append("| | | nothing new | | |")
+    lines = [f"Scout digest (repos/posts since {since}; papers per source window). Not adopted: to test one, add "
+             "`evals/candidates/<id>.json` (copy `_template.json`), commit it, open a PR and label it `eval`."]
+    for name, rows in (("Repos and posts", [i for i in ranked if i["source"] not in PAPERS]),
+                       ("Papers", [i for i in ranked if i["source"] in PAPERS])):
+        lines += ["", f"### {name}", "", "| score | source | item | signal | matched |", "|---|---|---|---|---|"]
+        for i in rows[:top]:
+            title = i["title"].replace("|", "/")[:90]
+            lines.append(f"| {i['score']} | {i['source']} | [{title}]({i['url']}) | {evidence(i)} | {', '.join(i['hits'])} |")
+        if not rows:
+            lines.append("| | | nothing new | | |")
     if errors:
         lines += ["", "Source errors: " + "; ".join(errors)]
     return "\n".join(lines) + "\n" + (f"\n{snap}\n" if snap else "")
