@@ -1,0 +1,3 @@
+{"pins": ["what is the dumbest implementation that passes these tests?", "Round-trip", "Idempotence", "Check the repo's build file", "are these tests good enough"],
+ "max_chars": 2900,
+ "refs": ["correctness-first-design", "deterministic-simulation-testing"]}

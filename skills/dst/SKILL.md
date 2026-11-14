@@ -66,8 +66,8 @@ Choose something else when:
 
 | Situation | Use instead |
 |---|---|
-| one pure function, no state across calls | a property test (kotest-property, Hypothesis) |
-| you are still designing the protocol, and the code doesn't exist yet | TLA+ (exhaustive within bounds), then DST to replay its traces against the code |
+| one pure function, no state across calls | a property test (kotest-property, Hypothesis); skill `property-tests-from-examples` |
+| you are still designing the protocol, and the code doesn't exist yet | write the invariants and workload first (skill `correctness-first-design`), then TLA+ (exhaustive within bounds), then DST to replay its traces against the code |
 | an algebraic law over all inputs | Lean / a proof, plus a conformance test |
 | the risk is in the infrastructure (sizes, timeouts, config, DB semantics) | a real-infra test (Testcontainers, `@RestateTest`); a model can't see it |
 | the whole system, unmodified, under network and node faults | Antithesis itself, or Jepsen-style real clusters |

@@ -1,0 +1,23 @@
+name: skills
+on:
+  push:
+    paths: ["skills/**", "scripts/**", "README.md", ".github/workflows/skills.yml"]
+  pull_request:
+    paths: ["skills/**", "scripts/**", "README.md", ".github/workflows/skills.yml"]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: skill checks (frontmatter, install lines, hygiene, pins, budgets, hand-offs)
+        run: uv run --no-project --python ${{ matrix.python }} scripts/check_skills.py
+      - name: planted bugs (each must be caught)
+        run: uv run --no-project --python ${{ matrix.python }} scripts/check_skills.py --self-test
+      - name: grader + fixture tests
+        run: uv run --no-project --python ${{ matrix.python }} scripts/test_skill_tools.py

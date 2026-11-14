@@ -1,0 +1,3 @@
+[{"id": "property-tests",
+  "q": "Are these tests good enough? Brief.\nfun discount(price: Int, pct: Int): Int\n@Test fun tenPercent() { assertEquals(90, discount(100, 10)) }\n@Test fun zeroPercent() { assertEquals(100, discount(100, 0)) }",
+  "expect": [["hard-code", "hardcode", "hard code", "hard-coded", "dumbest", "return 90", "if (pct == 10", "when (pct", "passes both", "pass both", "wrong implementation"], ["property", "properties"], ["kotest", "jqwik"], ["oracle", "metamorphic", "monoton", "idempot", "round-trip", "invariant", "never exceed", "never negative", "<= price", "reference", "never goes up"]]}]

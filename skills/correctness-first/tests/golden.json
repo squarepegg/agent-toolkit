@@ -1,0 +1,3 @@
+{"pins": ["A blank answer is a finding", "Down vs gray failure", "operations + input distribution + checker (+ faults)", "long runs of the same operation", "bank test", "it is unverified", "`always(\"<id>\", ...)`", "Don't add extra sections"],
+ "max_chars": 5900,
+ "refs": ["deterministic-simulation-testing", "spec-first", "property-tests-from-examples", "evidence-gated-decisions"]}

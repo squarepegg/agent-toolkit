@@ -10,6 +10,8 @@ Personal collection of agent skills, small utilities and benchmarks.
 | `skills/dst` | Deterministic simulation testing: seeded ops, virtual clock, fault injection, seed sweeps, model-vs-real conformance. Kotlin engine plus a Python sketch. |
 | `skills/doubt` | Doubt-driven development: materialize a fresh-context reviewer biased to disprove before a non-trivial decision stands. |
 | `skills/evidence-gated` | Evidence-gated decisions: criteria, computed checks, blind screen, deterministic verdict. |
+| `skills/correctness-first` | Correctness-first design: before code, write invariants, what is enforced by construction, down vs gray-failure signals; design an invariant-checking workload (ops + skewed inputs + concurrent checker + faults, bank-test template) and hand it to `dst` / `spec-first`. |
+| `skills/property-tests` | Property tests from examples: the dumbest implementation that passes your tests, then round-trip / invariant / idempotence / oracle / metamorphic properties. |
 | `skills/spec-first` | Interview the user into a checkable spec (code first, one decision at a time, defaults marked assumed), then verify the change with a fresh reviewer that sees only spec + diff + raw output; scripts decide PASS / FAIL / NOT CHECKED. Tests: `tests/test_spec_first.py`, `tests/planted_bugs.py`; live evals: `evals/run_evals.py`. |
 
 Each skill is a directory with a `SKILL.md`, and optionally `roles/`, `scripts/`, `templates/`,
@@ -24,6 +26,8 @@ ln -s "$PWD/skills/dst"               ~/.agents/skills/deterministic-simulation-
 ln -s "$PWD/skills/doubt"             ~/.agents/skills/doubt-driven-development
 ln -s "$PWD/skills/evidence-gated"     ~/.agents/skills/evidence-gated-decisions
 ln -s "$PWD/skills/spec-first"         ~/.agents/skills/spec-first
+ln -s "$PWD/skills/correctness-first"  ~/.agents/skills/correctness-first-design
+ln -s "$PWD/skills/property-tests"     ~/.agents/skills/property-tests-from-examples
 
 # Claude Code: link each skill into ~/.claude/skills instead (spec-first finds `pi` or `claude` itself for its reviewer)
 ```
@@ -34,6 +38,16 @@ macOS `sandbox-exec`, and for the Kotlin defaults JDK 21 and Gradle. Model gatew
 some need `ast-grep` on `PATH`.
 `skills/spec-first` needs only Python 3.9+, git and bash: `python3 skills/spec-first/tests/test_spec_first.py`, then
 `python3 skills/spec-first/tests/planted_bugs.py` (CI runs both); `evals/run_evals.py` drives a live `pi` session and costs tokens.
+
+### Checks and evals (all skills)
+
+- `python3 scripts/check_skills.py`: deterministic, stdlib only, run in CI. It checks frontmatter, unique names, a
+  README install line for each skill, no private strings, and, where `skills/<dir>/tests/golden.json` exists: pinned
+  text, a size budget, and hand-offs to other skills (each one must exist and still be named in the SKILL.md).
+  `--self-test` plants one bug per check in a temp copy and fails if any survives.
+- `python3 scripts/skill_ab.py <dir> [--samples 3]`: live A/B (costs tokens). It answers `skills/<dir>/evals/probes.json`
+  in fresh `pi` sessions, once with only that skill loaded and once with none, and grades with fixed substring groups,
+  never a model. Results go to `results/` (gitignored). Measured deltas are in each skill's `evals/README.md`.
 
 ## Snippets
 
