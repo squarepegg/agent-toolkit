@@ -35,6 +35,8 @@ jobs:
         with: { distribution: temurin, java-version: "21" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
+      - run: pip install pyyaml==6.0.2
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
       - name: TLA+ tools v1.7.4 (pinned by sha256)
         run: |
           curl -sfL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
