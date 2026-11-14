@@ -1,5 +1,7 @@
 # A/B plan: harness-engineering paper ideas → squarepegg skills (pre-registered, nothing run yet)
 
+**Status 2026-11-14: run done. Verdicts and what was applied: `evals/harness-ab/RESULTS.md`.**
+
 Source: arXiv 2609.00006 (Barbaste et al., Jul 2026), §9.6, §12.5, §16.
 
 ## agent-knowledge-map — no changes (the paper's ideas are already there)
