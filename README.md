@@ -12,6 +12,7 @@ Personal collection of agent skills, small utilities and benchmarks.
 | `skills/evidence-gated` | Evidence-gated decisions: criteria, computed checks, blind screen, deterministic verdict. |
 | `skills/correctness-first` | Correctness-first design: before code, write invariants, what is enforced by construction, down vs gray-failure signals; design an invariant-checking workload (ops + skewed inputs + concurrent checker + faults, bank-test template) and hand it to `dst` / `spec-first`. |
 | `skills/property-tests` | Property tests from examples: the dumbest implementation that passes your tests, then round-trip / invariant / idempotence / oracle / metamorphic properties. |
+| `skills/tests-as-data` | Tests as data for agent-written code: tables, scenario DSLs, golden/approval tests and evals as small human-readable files run by a frozen runner; red-first TDD, determinism rules, and `scripts/guard.py`, which fails a diff that touches test data or the runner in a task that should not. Tests: `tests/test_tests_as_data.py`. |
 | `skills/spec-first` | Interview the user into a checkable spec (code first, one decision at a time, defaults marked assumed), then verify the change with a fresh reviewer that sees only spec + diff + raw output; scripts decide PASS / FAIL / NOT CHECKED. Tests: `tests/test_spec_first.py`, `tests/planted_bugs.py`; live evals: `evals/run_evals.py`. |
 
 Each skill is a directory with a `SKILL.md`, and optionally `roles/`, `scripts/`, `templates/`,
@@ -28,6 +29,7 @@ ln -s "$PWD/skills/evidence-gated"     ~/.agents/skills/evidence-gated-decisions
 ln -s "$PWD/skills/spec-first"         ~/.agents/skills/spec-first
 ln -s "$PWD/skills/correctness-first"  ~/.agents/skills/correctness-first-design
 ln -s "$PWD/skills/property-tests"     ~/.agents/skills/property-tests-from-examples
+ln -s "$PWD/skills/tests-as-data"      ~/.agents/skills/tests-as-data
 
 # Claude Code: link each skill into ~/.claude/skills instead (spec-first finds `pi` or `claude` itself for its reviewer)
 ```
@@ -36,6 +38,7 @@ ln -s "$PWD/skills/property-tests"     ~/.agents/skills/property-tests-from-exam
 macOS `sandbox-exec`, and for the Kotlin defaults JDK 21 and Gradle. Model gateway: `SDLC_GATEWAY_URL`
 (see the skill's README). Unit tests: `python3 skills/adversarial-sdlc/tests/<name>_unit_test.py`;
 some need `ast-grep` on `PATH`.
+`skills/tests-as-data` needs only Python 3.9+ (and git for `guard.py --base`): `python3 skills/tests-as-data/tests/test_tests_as_data.py` (CI runs it).
 `skills/spec-first` needs only Python 3.9+, git and bash: `python3 skills/spec-first/tests/test_spec_first.py`, then
 `python3 skills/spec-first/tests/planted_bugs.py` (CI runs both); `evals/run_evals.py` drives a live `pi` session and costs tokens.
 

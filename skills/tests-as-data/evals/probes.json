@@ -1,0 +1,70 @@
+[
+ {
+  "id": "flaky-golden",
+  "q": "A golden/snapshot test passes locally but fails intermittently in CI. The coding agent proposes adding 3 retries and re-running the snapshot update command to re-bless the file. What do you do? Brief.",
+  "expect": [
+   [
+    "twice",
+    "two runs",
+    "two times",
+    "second run",
+    "run each case"
+   ],
+   [
+    "inject",
+    "seed",
+    "scrub",
+    "sort",
+    "fixed clock",
+    "freeze"
+   ],
+   [
+    "no retr",
+    "not retr",
+    "n't retr",
+    "without retr",
+    "instead of retr",
+    "rather than retr",
+    "remove the retr",
+    "drop the retr",
+    "reject the retr",
+    "retries mask",
+    "retries hide"
+   ],
+   [
+    "human",
+    "approve",
+    "review the diff",
+    "reviewer"
+   ]
+  ]
+ },
+ {
+  "id": "refactor-guard",
+  "q": "I asked a coding agent to refactor a module. After it finishes, how do I check mechanically that it did not weaken the tests? Brief.",
+  "expect": [
+   [
+    "guard.py",
+    "guard script",
+    "--task",
+    "per task",
+    "per-task",
+    "task type",
+    "type of task",
+    "kind of task"
+   ],
+   [
+    "data",
+    "expected values",
+    "expected output"
+   ],
+   [
+    "ci",
+    "hook",
+    "guard",
+    "read-only",
+    "codeowners"
+   ]
+  ]
+ }
+]

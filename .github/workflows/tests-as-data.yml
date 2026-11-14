@@ -1,0 +1,20 @@
+name: tests-as-data
+on:
+  push:
+    paths: ["skills/tests-as-data/**", ".github/workflows/tests-as-data.yml"]
+  pull_request:
+    paths: ["skills/tests-as-data/**", ".github/workflows/tests-as-data.yml"]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
+      - name: guard matrix, runner, determinism
+        run: uv run --no-project --python ${{ matrix.python }} skills/tests-as-data/tests/test_tests_as_data.py
