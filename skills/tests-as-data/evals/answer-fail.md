@@ -1,0 +1,1 @@
+Flaky snapshot tests are common. Adding a few retries is a reasonable way to keep CI green while you investigate. Re-running the snapshot update command will bring the file in line with the current output, so the agent's plan is fine. Consider pinning your dependency versions, too.

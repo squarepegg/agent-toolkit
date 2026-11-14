@@ -1,0 +1,3 @@
+{"pins": ["you are its customer", "show them red for the right reason", "Approve, never regenerate blindly", "and require identical output", "Rows must be stateless", "guard.py --task refactor", "baseline arm", "Pre-register", "Do not retry until green", "A test with no\nassertion must fail to parse"],
+ "max_chars": 9500,
+ "refs": ["property-tests-from-examples", "deterministic-simulation-testing", "correctness-first-design", "evidence-gated-decisions", "spec-first"]}
