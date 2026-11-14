@@ -1,0 +1,8 @@
+{
+ "id": "dst-skill",
+ "source": "skills/dst (this repo)",
+ "claim": "Loading skills/dst makes a default model answer the dst probes correctly more often than no skill",
+ "skill": "dst",
+ "samples": 3,
+ "min_gain": 2
+}

@@ -1,0 +1,24 @@
+name: scout
+# Weekly digest of new candidate resources as an issue. It never adopts: the eval workflow decides.
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # Mondays 08:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env: { GH_TOKEN: "${{ github.token }}", GITHUB_TOKEN: "${{ github.token }}", S2_API_KEY: "${{ secrets.S2_API_KEY }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Already-seen URLs and the last star snapshot (all past scout issues)
+        run: |
+          gh label create scout --color 0e8a16 --description "weekly scout digest" 2>/dev/null || true
+          gh issue list --label scout --state all --limit 200 --json body --jq '.[].body' > seen.md
+      - run: uv run --no-project --python 3.13 scout/scout.py --days 7 --top 15 --seen seen.md --out digest.md
+      - name: Open digest issue
+        run: gh issue create --label scout --title "Scout - week of $(date -u +%F)" --body-file digest.md

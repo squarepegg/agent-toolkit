@@ -48,12 +48,32 @@ some need `ast-grep` on `PATH`.
 - `python3 scripts/skill_ab.py <dir> [--samples 3]`: live A/B (costs tokens). It answers `skills/<dir>/evals/probes.json`
   in fresh `pi` sessions, once with only that skill loaded and once with none, and grades with fixed substring groups,
   never a model. Results go to `results/` (gitignored). Measured deltas are in each skill's `evals/README.md`.
+  `--with-path DIR` loads another skill in the `with` arm (same probes); `--out FILE` sets the results file.
 - `python3 scripts/split_skill.py split|check <skill_dir> <out_dir>`: progressive disclosure for a long SKILL.md. Keeps the
   core sections, moves the rest to `reference/sections/` with one pointer line each; `check` proves the split is lossless.
   `skills/doubt` is built this way (A/B-proven, see below).
 - `evals/harness-ab/`: pre-registered live A/B of two ideas from arXiv 2609.00006 (load less up front; rules as a lint
   script). Tooling tests run in CI (`python3 evals/harness-ab/test_harness_ab.py`); the live run costs tokens. Verdicts:
-  `evals/harness-ab/RESULTS.md`; rejected changes: `docs/negative-results.md`.
+  `evals/harness-ab/RESULTS.md`; rejected changes: `evals/negative-results.md`.
+
+### Adopting something new: candidate -> eval -> deterministic gate
+
+| Workflow | When | What | Model calls |
+|---|---|---|---|
+| `skills.yml`, `eval-gate.yml`, `skill-suites.yml` | push/PR | skill checks; `evals/test_gate.py` (verdicts, registration, properties, `skill_ab` -> gate through `evals/fake_pi.py`); `scout/test_scout.py`; the adversarial-sdlc and evidence-gated suites | none |
+| `eval.yml` | PR labelled `eval`, or by hand | each added/changed `evals/candidates/<id>.json`: `evals/run_candidate.py` then `evals/gate.py`; verdict commented on the PR | yes: variable `EVAL_MODEL`, secret `ANTHROPIC_API_KEY` |
+| `scout.yml` | Mondays | `scout/scout.py`: GitHub, HN, arXiv (`scout/sources.json`), minus anything already seen, ranked by keywords + stars gained per week (from the star snapshot hidden in the previous issue) ; papers listed separately from Semantic Scholar searches (last 6 months, most cited first, at least 10 citations), as a `scout` issue. Optional secret `S2_API_KEY` avoids the shared rate limit | none |
+
+1. Copy `evals/candidates/_template.json` to `<id>.json`: source, a one-sentence claim, the skill whose probes test it,
+   an optional outside skill pinned to a full commit sha (`fetch` + `with_path`), samples, thresholds.
+2. Commit it before running. The gate refuses a candidate file that differs from HEAD, probes that changed since the
+   run, and an unpinned model.
+3. Open a PR and label it `eval`. Verdicts: `ADOPT` (exit 0); `CEILING`, `NO_DELTA`, `REGRESSION`, `TOO_COSTLY`,
+   `INCONCLUSIVE` (exit 1). Probes marked `"split": "heldout"` must not regress and are never tuned against.
+4. Not adopted: paste the printed line into `evals/negative-results.md` and drop the change.
+
+Local: `EVAL_PI_ARGS='["--model","provider/id"]' python3 evals/run_candidate.py evals/candidates/dst-skill.json`, then
+`python3 evals/gate.py evals/candidates/dst-skill.json results/dst-skill.json`.
 
 ## Snippets
 

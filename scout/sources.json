@@ -1,0 +1,90 @@
+{
+ "_comment": "Where the weekly scout looks. Prefer primary sources (repos, papers) over feeds. Prune sources that never yield a candidate worth an eval. An item must match a keyword (word start, case-insensitive) to be listed. s2 = Semantic Scholar bulk search syntax (+ and, | or, quotes for phrases), papers published in the last `months`, most cited first, at least `min_citations`. arxiv (brand-new papers, no citations yet) is still supported: {\"kind\": \"arxiv\", \"query\": \"cat:cs.SE AND abs:agent\", \"days\": 14}.",
+ "sources": [
+  {
+   "kind": "github",
+   "query": "topic:agent-skills",
+   "min_stars": 20
+  },
+  {
+   "kind": "github",
+   "query": "topic:claude-skills",
+   "min_stars": 20
+  },
+  {
+   "kind": "github",
+   "query": "SKILL.md in:readme agent",
+   "min_stars": 50
+  },
+  {
+   "kind": "github",
+   "query": "topic:llm-evaluation",
+   "min_stars": 100
+  },
+  {
+   "kind": "github",
+   "query": "deterministic simulation testing",
+   "min_stars": 20
+  },
+  {
+   "kind": "hn",
+   "query": "agent skills",
+   "min_points": 50
+  },
+  {
+   "kind": "hn",
+   "query": "coding agent eval",
+   "min_points": 50
+  },
+  {
+   "kind": "hn",
+   "query": "deterministic simulation",
+   "min_points": 50
+  },
+  {
+   "kind": "s2",
+   "query": "(\"coding agent\" | \"LLM agent\" | \"software engineering agent\") + (evaluation | benchmark)",
+   "months": 6,
+   "min_citations": 10
+  },
+  {
+   "kind": "s2",
+   "query": "(LLM | \"language model\") + (\"property-based testing\" | \"mutation testing\" | \"test generation\" | fuzzing)",
+   "months": 6,
+   "min_citations": 10
+  },
+  {
+   "kind": "s2",
+   "query": "(\"agent skills\" | \"agent memory\" | \"context engineering\" | \"harness\") + (LLM | agent)",
+   "months": 6,
+   "min_citations": 10
+  },
+  {
+   "kind": "s2",
+   "query": "(\"deterministic simulation\" | \"formal verification\" | TLA+) + (LLM | agent)",
+   "months": 6,
+   "min_citations": 5
+  }
+ ],
+ "keywords": [
+  "skill",
+  "eval",
+  "benchmark",
+  "adversarial",
+  "red team",
+  "simulation",
+  "deterministic",
+  "property-based",
+  "mutation",
+  "fuzz",
+  "spec",
+  "code review",
+  "refactor",
+  "architecture",
+  "decision record",
+  "fitness function",
+  "coding agent",
+  "claude code",
+  "test"
+ ]
+}

@@ -1,0 +1,28 @@
+[
+ {
+  "id": "doubt-framing",
+  "q": "I want a second model to review my plan before I commit to it. How should its prompt and context be set up? Two lines.",
+  "expect": [
+   [
+    "adversarial"
+   ],
+   [
+    "fresh"
+   ]
+  ]
+ },
+ {
+  "id": "doubt-not-summarize",
+  "split": "heldout",
+  "q": "In a doubt-driven review, name two things the reviewer is told NOT to do.",
+  "expect": [
+   [
+    "validate"
+   ],
+   [
+    "summarize",
+    "summarise"
+   ]
+  ]
+ }
+]
