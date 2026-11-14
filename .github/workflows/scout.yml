@@ -10,12 +10,12 @@ permissions:
 jobs:
   scout:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env: { GH_TOKEN: "${{ github.token }}", GITHUB_TOKEN: "${{ github.token }}" }
+    timeout-minutes: 15
+    env: { GH_TOKEN: "${{ github.token }}", GITHUB_TOKEN: "${{ github.token }}", S2_API_KEY: "${{ secrets.S2_API_KEY }}" }
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Already-seen URLs (all past scout issues)
+      - name: Already-seen URLs and the last star snapshot (all past scout issues)
         run: |
           gh label create scout --color 0e8a16 --description "weekly scout digest" 2>/dev/null || true
           gh issue list --label scout --state all --limit 200 --json body --jq '.[].body' > seen.md

@@ -56,7 +56,7 @@ some need `ast-grep` on `PATH`.
 |---|---|---|---|
 | `skills.yml`, `eval-gate.yml`, `skill-suites.yml` | push/PR | skill checks; `evals/test_gate.py` (verdicts, registration, properties, `skill_ab` -> gate through `evals/fake_pi.py`); `scout/test_scout.py`; the adversarial-sdlc and evidence-gated suites | none |
 | `eval.yml` | PR labelled `eval`, or by hand | each added/changed `evals/candidates/<id>.json`: `evals/run_candidate.py` then `evals/gate.py`; verdict commented on the PR | yes: variable `EVAL_MODEL`, secret `ANTHROPIC_API_KEY` |
-| `scout.yml` | Mondays | `scout/scout.py`: GitHub, HN, arXiv (`scout/sources.json`), minus anything already seen, as a `scout` issue | none |
+| `scout.yml` | Mondays | `scout/scout.py`: GitHub, HN, arXiv (`scout/sources.json`), minus anything already seen, ranked by keywords + stars gained per week (from the star snapshot hidden in the previous issue) + Semantic Scholar citations, as a `scout` issue. Optional secret `S2_API_KEY` avoids the shared rate limit | none |
 
 1. Copy `evals/candidates/_template.json` to `<id>.json`: source, a one-sentence claim, the skill whose probes test it,
    an optional outside skill pinned to a full commit sha (`fetch` + `with_path`), samples, thresholds.

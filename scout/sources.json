@@ -1,5 +1,5 @@
 {
- "_comment": "Where the weekly scout looks. Prefer primary sources (repos, papers) over feeds. Prune sources that never yield a candidate worth an eval. An item must match a keyword (word start, case-insensitive) to be listed.",
+ "_comment": "Where the weekly scout looks. Prefer primary sources (repos, papers) over feeds. Prune sources that never yield a candidate worth an eval. An item must match a keyword (word start, case-insensitive) to be listed. A source may set \"days\" to look back further (arXiv: papers need time to collect citations).",
  "sources": [
   {
    "kind": "github",
@@ -43,11 +43,15 @@
   },
   {
    "kind": "arxiv",
-   "query": "cat:cs.SE AND abs:agent AND (abs:evaluation OR abs:benchmark)"
+   "query": "cat:cs.SE AND abs:agent AND (abs:evaluation OR abs:benchmark)",
+   "days": 60,
+   "max": 200
   },
   {
    "kind": "arxiv",
-   "query": "cat:cs.SE AND abs:LLM AND (abs:\"property-based\" OR abs:mutation)"
+   "query": "cat:cs.SE AND abs:LLM AND (abs:\"property-based\" OR abs:mutation)",
+   "days": 60,
+   "max": 200
   }
  ],
  "keywords": [
