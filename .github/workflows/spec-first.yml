@@ -14,11 +14,9 @@ jobs:
         python: ["3.9", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v6   # python-build-standalone: 3.9 still exists on new runner images
       - run: git config --global user.email ci@example.com && git config --global user.name ci
       - name: unit, integration, determinism
-        run: python3 skills/spec-first/tests/test_spec_first.py
+        run: uv run --no-project --python ${{ matrix.python }} skills/spec-first/tests/test_spec_first.py
       - name: planted bugs (each must be caught by its named test)
-        run: python3 skills/spec-first/tests/planted_bugs.py
+        run: uv run --no-project --python ${{ matrix.python }} skills/spec-first/tests/planted_bugs.py
