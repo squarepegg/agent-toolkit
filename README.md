@@ -10,6 +10,7 @@ Personal collection of agent skills, small utilities and benchmarks.
 | `skills/dst` | Deterministic simulation testing: seeded ops, virtual clock, fault injection, seed sweeps, model-vs-real conformance. Kotlin engine plus a Python sketch. |
 | `skills/doubt` | Doubt-driven development: materialize a fresh-context reviewer biased to disprove before a non-trivial decision stands. |
 | `skills/evidence-gated` | Evidence-gated decisions: criteria, computed checks, blind screen, deterministic verdict. |
+| `skills/spec-first` | Interview the user into a checkable spec (code first, one decision at a time, defaults marked assumed), then verify the change with a fresh reviewer that sees only spec + diff + raw output; scripts decide PASS / FAIL / NOT CHECKED. Tests: `tests/test_spec_first.py`, `tests/planted_bugs.py`; live evals: `evals/run_evals.py`. |
 
 Each skill is a directory with a `SKILL.md`, and optionally `roles/`, `scripts/`, `templates/`,
 `reference/` and `examples/`.
@@ -22,14 +23,17 @@ ln -s "$PWD/skills/adversarial-sdlc" ~/.agents/skills/adversarial-sdlc
 ln -s "$PWD/skills/dst"               ~/.agents/skills/deterministic-simulation-testing
 ln -s "$PWD/skills/doubt"             ~/.agents/skills/doubt-driven-development
 ln -s "$PWD/skills/evidence-gated"     ~/.agents/skills/evidence-gated-decisions
+ln -s "$PWD/skills/spec-first"         ~/.agents/skills/spec-first
 
-# Claude Code: link each skill into ~/.claude/skills instead
+# Claude Code: link each skill into ~/.claude/skills instead (spec-first finds `pi` or `claude` itself for its reviewer)
 ```
 
 `skills/adversarial-sdlc` needs `pi` (or another CLI via `SDLC_RUNNER_<role>`), Python 3.9+, Docker or
 macOS `sandbox-exec`, and for the Kotlin defaults JDK 21 and Gradle. Model gateway: `SDLC_GATEWAY_URL`
 (see the skill's README). Unit tests: `python3 skills/adversarial-sdlc/tests/<name>_unit_test.py`;
 some need `ast-grep` on `PATH`.
+`skills/spec-first` needs only Python 3.9+, git and bash: `python3 skills/spec-first/tests/test_spec_first.py`, then
+`python3 skills/spec-first/tests/planted_bugs.py` (CI runs both); `evals/run_evals.py` drives a live `pi` session and costs tokens.
 
 ## Snippets
 

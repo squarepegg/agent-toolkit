@@ -1,0 +1,22 @@
+name: spec-first
+on:
+  push:
+    paths: ["skills/spec-first/**", ".github/workflows/spec-first.yml"]
+  pull_request:
+    paths: ["skills/spec-first/**", ".github/workflows/spec-first.yml"]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6   # python-build-standalone: 3.9 still exists on new runner images
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
+      - name: unit, integration, determinism
+        run: uv run --no-project --python ${{ matrix.python }} skills/spec-first/tests/test_spec_first.py
+      - name: planted bugs (each must be caught by its named test)
+        run: uv run --no-project --python ${{ matrix.python }} skills/spec-first/tests/planted_bugs.py

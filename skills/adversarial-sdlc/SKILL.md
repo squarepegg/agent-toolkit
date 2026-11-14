@@ -49,7 +49,8 @@ Before putting a trade-off to the user, use `evidence-gated-decisions` (eval tab
      check the report timestamps) and get a human or bot review of the ported change.
 1. **Init.** `sdlc.sh init`, or `init --scaffold kotlin --package <pkg>` for a new project. Set
    the per-role models in `sdlc.config` (`README.md`). Put the attacker on another model family.
-2. **Spec.** Write the requirements to a file, then run `sdlc.sh spec <file>`. It exits 7. Show
+2. **Spec.** Write the requirements to a file (an accepted `spec-first` spec works as is: its decisions are
+   already made with the user), then run `sdlc.sh spec <file>`. It exits 7. Show
    the spec and its Open questions, then **stop**. A new spec archives any earlier run.
    A human may edit `.sdlc/spec.md` before approving. `approve` then records the edit
    (`spec.edited`, `spec.edit.diff` against the role's `spec.role.md`), and the report lists it.
