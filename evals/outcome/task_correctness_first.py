@@ -40,8 +40,8 @@ when more than four full (sealed) segments exist, two of them are merged into on
 simulates a process restart: the in-memory index is thrown away and rebuilt by replaying every segment in order. After
 restart() the store must behave exactly as it did before.
 
-put_many(items) is all-or-nothing: if any value is not an int, float or str it raises TypeError and the store is
-unchanged.
+Keys must be hashable and values of put_many must be int, float or str: put, delete and put_many raise TypeError for
+anything else, and the store is unchanged. put_many(items) is all-or-nothing.
 """
 
 
@@ -54,18 +54,21 @@ class Store:
         self.index = {}
 
     def put(self, key, value):
+        hash(key)
         self._append(("put", key, value))
         self.index[key] = value
 
     def put_many(self, items):
         items = list(items)
-        for _, value in items:
+        for key, value in items:
+            hash(key)
             if not isinstance(value, (int, float, str)):
                 raise TypeError(f"unsupported value {value!r}")
         for key, value in items:
             self.put(key, value)
 
     def delete(self, key):
+        hash(key)
         self._append(("del", key, None))
         self.index.pop(key, None)
 
@@ -116,11 +119,13 @@ MUTANTS = {
     "falsy_lost": _sub("                if op == \"put\":\n                    self.index[key] = value",
                        "                if op == \"put\" and value:\n                    self.index[key] = value"),
     "batch_partial": _sub("""        items = list(items)
-        for _, value in items:
+        for key, value in items:
+            hash(key)
             if not isinstance(value, (int, float, str)):
                 raise TypeError(f"unsupported value {value!r}")
         for key, value in items:
             self.put(key, value)""", """        for key, value in items:
+            hash(key)
             if not isinstance(value, (int, float, str)):
                 raise TypeError(f"unsupported value {value!r}")
             self.put(key, value)"""),

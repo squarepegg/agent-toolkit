@@ -22,7 +22,7 @@ Cells are runs passed (`k/n`) or, for mutation-score tasks, mean mutants killed 
 | dst | NOT_RUN | 0/0 | 0/0 | 0/0 |  |  | 0 | $0 |  |
 | doubt | NOT_RUN | 0/0 | 0/0 | 0/0 |  |  | 0 | $0 |  |
 | property-tests | INCONCLUSIVE | 7/10 | 10/10 | 5/10 | 0.1053 | 0.0163 | 60 | $1.55 | ["-e", "/Users/nicst.pegg/.pi/agent/git/github.com/FortisGames/pi-fortis-ai-gateway", "--model", "fortis-ai-gateway/claude-sonnet-5-5", "--thinking", "medium"] |
-| correctness-first | NOT_RUN | 0.0/6 | 0.0/6 | 0.0/6 |  |  | 11 | $0 |  |
+| correctness-first | NOT_RUN | 0.0/6 | 0.0/6 | 0.0/6 |  |  | 15 | $0 |  |
 
 ## Claims
 
