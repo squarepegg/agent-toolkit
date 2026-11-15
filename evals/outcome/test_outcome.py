@@ -316,6 +316,14 @@ class Ledger(unittest.TestCase):
         for s in ("model not pinned", "missing", "duplicate run", "primary checks not graded"):
             self.assertIn(s, probs)
 
+    def test_same_run_index_under_two_models_is_not_a_duplicate(self):
+        a = _rows("property-tests", {"none": 0, "skill": 5, "control": 0}, model='["--model","p/a"]')
+        b = _rows("property-tests", {"none": 0, "skill": 5, "control": 0}, model='["--model","p/b"]')
+        self.write(a + b)
+        self.assertEqual(V.validate_ledger(), [])
+        self.write(a + a[:1])                                 # a true duplicate is still reported
+        self.assertIn("duplicate run", " ".join(V.validate_ledger()))
+
     def test_unknown_task_file(self):
         self.write([], name="nope")
         self.assertIn("no task", " ".join(V.validate_ledger()))

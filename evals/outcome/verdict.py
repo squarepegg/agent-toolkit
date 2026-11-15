@@ -237,7 +237,7 @@ def validate_ledger():
                 probs.append(f"{p}:{n}: wrong task or arm")
             if "--model" not in r["model"]:
                 probs.append(f"{p}:{n}: model not pinned")
-            key = (r["arm"], r["i"], json.dumps(r["hashes"], sort_keys=True))
+            key = (r["arm"], r["i"], json.dumps(r["hashes"], sort_keys=True), r["model"])
             if key in seen:
                 probs.append(f"{p}:{n}: duplicate run {key[:2]}")
             seen.add(key)
