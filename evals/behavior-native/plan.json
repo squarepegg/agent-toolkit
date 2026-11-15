@@ -1,0 +1,19 @@
+{
+  "transport": "native Codex agents, fresh fork_turns=none; no CLI or gateway",
+  "models": ["gpt-6.1-sol", "gpt-6.1-terra"],
+  "reasoning_effort": "medium",
+  "arms": ["baseline", "candidate", "control"],
+  "tasks": ["activation", "stopping", "recovery", "revalidation"],
+  "case_sequences": {"activation": [0, 1, 2, 3, 2], "stopping": [0, 1, 0, 1, 0], "recovery": [0, 1, 0, 1, 0], "revalidation": [0, 1, 0, 1, 0]},
+  "n": 5,
+  "alpha": 0.00625,
+  "alpha_reason": "0.05 / 8 task-model hypotheses; must beat both comparators",
+  "ceiling": 0.8,
+  "session_timeout_seconds": 180,
+  "primary": "All objective case checks pass. Activation is graded by answering vs interviewing, not inferred skill-file loading, because native tool telemetry is not exported to this harness.",
+  "heldout": "Candidate pass count on held-out cases cannot be lower than either comparator",
+  "cost": "Native delegation supplies no attributable dollar pricing; report quality separately and never claim cost efficiency",
+  "decision": "Report per model. Quality gains require significance vs both comparators plus no held-out regression. Broad adoption requires a consistent gain on both models and manual transcript checks; absent this retain existing skills.",
+  "falsifier": "Baseline is already at ceiling, candidate does not beat the generic control, gain disappears on the second model, or a held-out regression occurs",
+  "limits": "Native agents retain platform instructions/tool availability. Project skill catalog is supplied as metadata in the request. Parent context, grader, hypotheses, arm identity and other cases are withheld. Do not pool these results with the Pi experiment. Case diversity is small; conclusions apply only to these tasks/models. Response files are a capture mechanism and are checked against delivered answers by the coordinator."
+}

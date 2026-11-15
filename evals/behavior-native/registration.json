@@ -1,0 +1,108 @@
+{
+  "plan": {
+    "transport": "native Codex agents, fresh fork_turns=none; no CLI or gateway",
+    "models": [
+      "gpt-6.1-sol",
+      "gpt-6.1-terra"
+    ],
+    "reasoning_effort": "medium",
+    "arms": [
+      "baseline",
+      "candidate",
+      "control"
+    ],
+    "tasks": [
+      "activation",
+      "stopping",
+      "recovery",
+      "revalidation"
+    ],
+    "case_sequences": {
+      "activation": [
+        0,
+        1,
+        2,
+        3,
+        2
+      ],
+      "stopping": [
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "recovery": [
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "revalidation": [
+        0,
+        1,
+        0,
+        1,
+        0
+      ]
+    },
+    "n": 5,
+    "alpha": 0.00625,
+    "alpha_reason": "0.05 / 8 task-model hypotheses; must beat both comparators",
+    "ceiling": 0.8,
+    "session_timeout_seconds": 180,
+    "primary": "All objective case checks pass. Activation is graded by answering vs interviewing, not inferred skill-file loading, because native tool telemetry is not exported to this harness.",
+    "heldout": "Candidate pass count on held-out cases cannot be lower than either comparator",
+    "cost": "Native delegation supplies no attributable dollar pricing; report quality separately and never claim cost efficiency",
+    "decision": "Report per model. Quality gains require significance vs both comparators plus no held-out regression. Broad adoption requires a consistent gain on both models and manual transcript checks; absent this retain existing skills.",
+    "falsifier": "Baseline is already at ceiling, candidate does not beat the generic control, gain disappears on the second model, or a held-out regression occurs",
+    "limits": "Native agents retain platform instructions/tool availability. Project skill catalog is supplied as metadata in the request. Parent context, grader, hypotheses, arm identity and other cases are withheld. Do not pool these results with the Pi experiment. Case diversity is small; conclusions apply only to these tasks/models. Response files are a capture mechanism and are checked against delivered answers by the coordinator."
+  },
+  "inputs": {
+    "evals/behavior-ab/README.md": "710257a47173a80ef5115401986cf99965a2743e93da702d03b7c4ed1d53c009",
+    "evals/behavior-ab/baselines/brain/LICENSE": "dfe52690b79f7938da03b5610ac4708fa983562ddbea3c3e83c402feb8d52b6b",
+    "evals/behavior-ab/baselines/brain/scripts/_fm.py": "b9e10dd37fa836765f3e148876aade7c35a6aea054b691ab53d733f93b4be71d",
+    "evals/behavior-ab/baselines/brain/scripts/brain.py": "08fb14f20a41f3b17af6e82994bd50db9e62ccc8e4d6b6e27f4575316c8be335",
+    "evals/behavior-ab/baselines/brain/scripts/lint_facts.py": "b975c74a78d6ffabdc0c4e3f231b573783e718c869ccaa32956ab27e6886f4ad",
+    "evals/behavior-ab/baselines/brain/scripts/tour_lint.py": "8f80818a4b6e19298e5e1f82381af023d929260c7c1c3db845a7cd93726c95a8",
+    "evals/behavior-ab/baselines/brain/skills/brain/SKILL.md": "113fd780e0b7d1c0e30ed3950167ffd3ab805cfaa24070cb34dc860c0aec06c3",
+    "evals/behavior-ab/baselines/brain/style.md": "13ace7e8496fe7fa6e9391084578e86cf6141455e7e441e1715314597157d179",
+    "evals/behavior-ab/baselines/brain/templates/STATE.md": "37bd6e16873e08bbb03e8a046749a8ad516b7c26c7a89f9f37c3d86b95f212e5",
+    "evals/behavior-ab/baselines/brain/templates/fact.md": "361b3a28404d03ff03fd927f8469dfccf3ea21a1a19c73cefbf8ba465e9a9408",
+    "evals/behavior-ab/baselines/provenance.json": "52b713937261c007650d51cdcd821f825bfb293de304a4e662ba2d492ef25064",
+    "evals/behavior-ab/baselines/spec-first/.gitignore": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b",
+    "evals/behavior-ab/baselines/spec-first/SKILL.md": "61eca55c6cf938effd365d31f299b3f431fd5ea5a4043a68be3de8e10a64e84f",
+    "evals/behavior-ab/baselines/spec-first/scripts/evidence.py": "cddb871e5ac365b54191f6e6df1e41f24fccb737b72d4d1f53b7196ec7cf1550",
+    "evals/behavior-ab/baselines/spec-first/scripts/review.sh": "bc44e7f038379dc2859e188fdf945420f5f3c5dec4401fb20207b482f86254dd",
+    "evals/behavior-ab/baselines/spec-first/scripts/spec.py": "552965e10cefef4087f4b4cb7575e6c44e3af070d2d91a571eb9c6ce8f5053a6",
+    "evals/behavior-ab/baselines/spec-first/scripts/verdict.py": "a0ac4617835ba83bd1e31e801842dd438042eac7caab5abfcd2493cb1ff5c72e",
+    "evals/behavior-ab/baselines/spec-first/templates/reviewer-brief.md": "bcc145b27305555ac85ff77bfbb2c8a8294355b32f9929b3ac3b496fd5f4673f",
+    "evals/behavior-ab/baselines/spec-first/templates/spec.md": "b0eced0d6612f11bc854ba8471d0c392d799e68b80737fb5b01657df22291a02",
+    "evals/behavior-ab/candidates.json": "6bc9a5a762e75f4da81ba22bdcb3c7d45ea314297b3ec60cd05a3a36b5c00187",
+    "evals/behavior-ab/fake_pi.py": "87e68a0b2f195f3984c68e3fff15d5a14059f566ba2edd4090d51a23cb316d1e",
+    "evals/behavior-ab/plan.json": "8fa39c0acd62d1b7aaeccbe7703d5552b8ca5f5b58a73a80bc92dee7b39005c0",
+    "evals/behavior-ab/run.py": "5af093a6add90c79de15a9b05bb39cb8f4cf7252c61ea57a530dd909a5875a12",
+    "evals/behavior-ab/tasks.py": "6a843b37547490adcf0838f16e7f5d7726f39a91599a0b19ce63439737d1c0ee",
+    "evals/behavior-ab/test_behavior_ab.py": "92582809374b4acaa4ec038f5fc506525d1c042b7f4da456b7bda248afb1cdb1",
+    "evals/behavior-native/native.py": "582d32cf460a61239092715fe654aac9acbb232b79995028cd92d30220df2f0a",
+    "evals/behavior-native/plan.json": "d375751f312d030f0fe424f8bf4565bb5dd3a6f30297c86d80fb41adf4e4671b",
+    "evals/behavior-native/test_native.py": "487229fba9581862d0cd3672d9d59866a20a1e98e56709d7c1ee4f2b655aa5b4",
+    "evals/harness-ab/dst_lint.py": "5799d00eb6b7930e7ce800eb10739aa28a73b5313ea998bf884cf857034493fe",
+    "evals/harness-ab/regrade.py": "aa17b8612b0d1a20915ad3566ceb06372030bd70b3021305a51a91e5417d3576",
+    "evals/harness-ab/report.py": "b3322e69f335da0ba3ff9f311cd2706cdbf09e49ae4205816d3f7347e5cc096a",
+    "evals/harness-ab/run.py": "1125d702df7f42ebcc16dc8bba57277fe52dbf1848d27d50c8b70a7ac756ee85",
+    "evals/harness-ab/tasks.py": "500dd360784f33904d8e449b2ed91eea2e8bcf2e2870ae68e92f3672b33d93c8",
+    "evals/harness-ab/test_harness_ab.py": "00a4dad9a2a41d0f3e818c828c5369d1dbd4bfceb4b15e77c43955cff49f0152",
+    "evals/outcome/control.md": "e86bc80fb4a61bfb04046cded5b00e23c8a6ae65dcd3504942784f33e12446ae",
+    "evals/outcome/fake_agent.py": "ef062ef100de9e84f6ad793ef2152c6677cfa140cd58648d950ec27653f27c83",
+    "evals/outcome/registry.py": "118641d6bd81d46be17cd341e99230776018aa1d0e79dadbec460cef874ed29e",
+    "evals/outcome/run.py": "2508cea6f58b32c3203ac322580c0b7d39e058978086d38a76697f4f7f6ab2b4",
+    "evals/outcome/task_correctness_first.py": "3d1a1255d7ba6db22e9a2e0989c5a27b85913123fbb3e41c959a882f60dd4941",
+    "evals/outcome/task_dst_doubt.py": "605873f80bf10709e07405065246261b0e6b4c169e163e77f8e670f2c98b7a48",
+    "evals/outcome/task_property_tests.py": "d1e5273a9e23eeb6c497aaefb9013a31047552fdbd321ab7575897681fe5b53a",
+    "evals/outcome/test_outcome.py": "b586919c0375bd6a6cd189e3306eb5b2d925b556ce6fee1015df4a5f2174ac2b",
+    "evals/outcome/verdict.py": "9afe39dbbaa41bf0afb7fc90956a4271610a213f8de3fb70ec1e9b0e436524da",
+    "scripts/split_skill.py": "c4d078ace17df56089beed8cee9d981c4d6c361e9d15a5115ba2e94f3cb6d2fd"
+  }
+}
