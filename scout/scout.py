@@ -249,6 +249,7 @@ def main():
     ap.add_argument("--top", type=int, default=15)
     ap.add_argument("--seen", nargs="*", default=[])
     ap.add_argument("--out")
+    ap.add_argument("--json", help="also write the ranked items as JSON (input for scout/triage.py)")
     a = ap.parse_args()
     cfg = json.load(open(os.path.join(HERE, "sources.json")))
     today = datetime.date.today().isoformat()
@@ -263,8 +264,13 @@ def main():
     err = add_citations(items, key=os.environ.get("S2_API_KEY"))
     if err:
         errors.append(err)
-    seen = seen_urls([*a.seen, os.path.join(REPO, "evals", "negative-results.md"), os.path.join(REPO, "evals", "candidates")])
-    md = digest(rank(items, cfg["keywords"], seen), a.top, since, errors, snapshot(items, today))
+    seen = seen_urls([*a.seen, os.path.join(REPO, "evals", "negative-results.md"), os.path.join(REPO, "evals", "candidates"),
+                       os.path.join(REPO, "evals", "triage")])
+    ranked = rank(items, cfg["keywords"], seen)
+    md = digest(ranked, a.top, since, errors, snapshot(items, today))
+    if a.json:
+        with open(a.json, "w") as fh:
+            json.dump([i for i in ranked if i["source"] not in PAPERS][:a.top] + [i for i in ranked if i["source"] in PAPERS][:a.top], fh, indent=1)
     if a.out:
         open(a.out, "w").write(md)
     print(md)
