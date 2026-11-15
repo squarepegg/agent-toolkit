@@ -10,7 +10,7 @@
   "alpha_reason": "0.05 / 8 task-model hypotheses; must beat both comparators",
   "ceiling": 0.8,
   "session_timeout_seconds": 180,
-  "primary": "All objective case checks pass. Activation is graded by answering vs interviewing, not inferred skill-file loading, because native tool telemetry is not exported to this harness.",
+  "primary": "All objective case checks pass. Activation is graded by answering vs interviewing, not inferred skill-file loading, because native tool telemetry is not exported to this harness. Recovery's unrun check name is compared ignoring capitalization and repeated whitespace; command strings remain exact.",
   "heldout": "Candidate pass count on held-out cases cannot be lower than either comparator",
   "cost": "Native delegation supplies no attributable dollar pricing; report quality separately and never claim cost efficiency",
   "decision": "Report per model. Quality gains require significance vs both comparators plus no held-out regression. Broad adoption requires a consistent gain on both models and manual transcript checks; absent this retain existing skills.",

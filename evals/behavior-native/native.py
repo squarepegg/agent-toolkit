@@ -144,6 +144,9 @@ def grade(trial,reg):
         del checks["correct_activation"]  # Native run judges behavior, not unavailable tool-read telemetry.
     if trial["task"]=="recovery":
         checks.update(save_only_state=trial["save_only_state"],resume_readonly=trial["resume_before"]==B.file_state(root))
+        obj=T.json_answer(log[-1]["assistant"])
+        # Check names are labels, not commands: capitalization/whitespace do not change their meaning.
+        checks["unrun_evidence"]=isinstance(obj.get("unrun_checks"),list) and [" ".join(str(x).lower().split()) for x in obj["unrun_checks"]]==["browser smoke test"]
     row={"experiment":sha(reg),"id":trial["id"],"task":trial["task"],"case":trial["case"]["id"],
          "split":trial["case"]["split"],"model":trial["model"],"arm":trial["arm"],"i":trial["i"],
          "checks":checks,"pass":all(checks.values()),"cost_usd":None,"transport":"native_codex"}
