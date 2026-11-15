@@ -19,6 +19,8 @@ jobs:
         run: |
           gh label create scout --color 0e8a16 --description "weekly scout digest" 2>/dev/null || true
           gh issue list --label scout --state all --limit 200 --json body --jq '.[].body' > seen.md
-      - run: uv run --no-project --python 3.13 scout/scout.py --days 7 --top 15 --seen seen.md --out digest.md
+      - run: uv run --no-project --python 3.13 scout/scout.py --days 7 --top 15 --seen seen.md --out digest.md --json items.json
       - name: Open digest issue
         run: gh issue create --label scout --title "Scout - week of $(date -u +%F)" --body-file digest.md
+      - uses: actions/upload-artifact@v4
+        with: { name: scout-items, path: items.json, retention-days: 14 }
