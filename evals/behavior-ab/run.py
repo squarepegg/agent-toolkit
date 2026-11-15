@@ -91,13 +91,13 @@ def committed():
             raise SystemExit("Commit the registered inputs before running: " + rel)
 
 
-def registration():
+def registration(verify_provider=True):
     if not REG.exists():
         raise SystemExit("Register a pinned model first (see --help).")
     reg = json.loads(REG.read_text())
     if reg["inputs"] != hashes():
         raise SystemExit("Experimental inputs changed; register and commit a NEW experiment before running.")
-    if reg["extensions"] != extension_hashes(reg["pi_args"]):
+    if verify_provider and reg["extensions"] != extension_hashes(reg["pi_args"]):
         raise SystemExit("Provider extension changed; register a new experiment before running.")
     committed()
     return reg
@@ -362,9 +362,16 @@ def report(reg):
     key = digest(reg)
     all_rows = rows()
     fresh = [r for r in all_rows if r["experiment"] == key]
+    if any(r.get("task") not in PLAN["candidates"] or r.get("model") != reg["pi_args"] for r in fresh):
+        print("INVALID_LEDGER: unknown task or model differs from registration", file=sys.stderr)
+        return 1
+    invalid = False
     for task in PLAN["candidates"]:
-        print(json.dumps(summarize(task, [r for r in fresh if r["task"] == task]), sort_keys=True))
+        summary = summarize(task, [r for r in fresh if r["task"] == task])
+        invalid |= summary["verdict"] == "INVALID_LEDGER"
+        print(json.dumps(summary, sort_keys=True))
     print(f"stale rows excluded: {len(all_rows)-len(fresh)}")
+    return int(invalid)
 
 
 def main():
@@ -391,17 +398,17 @@ def main():
         REG.write_text(json.dumps(reg, indent=2)+"\n")
         print(f"Registered {digest(reg)}; commit inputs before running. No model calls made.")
         return 0
-    reg = registration()
+    reg = registration(verify_provider=a.command == "run")
     if a.command == "report":
-        report(reg)
-        return 0
+        return report(reg)
+    if report(reg):
+        return 1
     try:
         code = run(reg)
     except (RuntimeError, OSError) as e:
         print(str(e), file=sys.stderr)
         return 1
-    report(reg)
-    return code
+    return max(code, report(reg))
 
 
 if __name__ == "__main__":

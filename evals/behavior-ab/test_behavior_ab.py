@@ -2,6 +2,8 @@
 """Offline sensitivity, properties and end-to-end RPC tests. No model calls and no live ledger writes."""
 import copy
 import importlib.util
+import contextlib
+import io
 import json
 import os
 import random
@@ -194,6 +196,21 @@ class Transport(unittest.TestCase):
 
 
 class Registration(unittest.TestCase):
+    def test_report_is_portable_and_invalid_live_rows_fail_the_gate(self):
+        reg = {"pi_args":["--model","fake/agent"]}
+        rows = good_rows("activation")
+        for row in rows:
+            row.update(experiment=R.digest(reg),model=reg["pi_args"])
+        with patch.object(R,"rows",return_value=rows), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(R.report(reg),0)
+            rows[0]["checks"] = {}
+            self.assertEqual(R.report(reg),1)
+        with patch.object(R,"REG") as path, patch.object(R,"hashes",return_value={}), patch.object(R,"committed"), \
+             patch.object(R,"extension_hashes",side_effect=AssertionError("CI must not need a local provider")):
+            path.exists.return_value=True
+            path.read_text.return_value=json.dumps({"inputs":{},"pi_args":[],"extensions":{}})
+            R.registration(verify_provider=False)
+
     def test_uncommitted_and_hidden_edits_are_refused(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

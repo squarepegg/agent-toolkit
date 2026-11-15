@@ -59,7 +59,8 @@ The isolated Pi configuration does not inherit provider credentials: use the exp
 your normal provider authentication through the environment. Never copy credentials into this directory.
 
 The checked-in registration pins Pi, model arguments, provider-extension hashes and all experiment/shared-harness
-inputs. Changes to those inputs block a run. It must be committed before execution. Pi is 1.5.2 in the initial registration.
+inputs. Changes to those inputs block a run. Working files must equal their committed HEAD bytes, including inputs
+hidden from git status. It must be committed before execution. Pi is 1.5.2 in the initial registration.
 If your installed provider or Pi version differs, create a new registration **before** collecting observations:
 
 ```sh
@@ -93,6 +94,7 @@ it is the isolated subprocess interface used by the registered runner.
 python3 evals/behavior-ab/test_behavior_ab.py
 ```
 
+CI also recomputes the committed ledger verdicts without requiring Pi or the local provider extension.
 The offline suite checks exact baseline/control construction, snapshot provenance, verdict permutations and
 corruptions, reference-vs-naive graders, and the actual shared RPC transport with a deterministic fake executable.
 Fake runs are transport/grader tests, never evidence of candidate value. Existing outcome and harness-ab tests remain separate.

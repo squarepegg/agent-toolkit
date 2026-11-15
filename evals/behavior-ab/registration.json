@@ -20,7 +20,7 @@
     }
   },
   "inputs": {
-    "evals/behavior-ab/README.md": "cee0446757717efe0a164c250146d68bc3f9bdedfe316aa04159c4759044151e",
+    "evals/behavior-ab/README.md": "710257a47173a80ef5115401986cf99965a2743e93da702d03b7c4ed1d53c009",
     "evals/behavior-ab/baselines/brain/LICENSE": "dfe52690b79f7938da03b5610ac4708fa983562ddbea3c3e83c402feb8d52b6b",
     "evals/behavior-ab/baselines/brain/scripts/_fm.py": "b9e10dd37fa836765f3e148876aade7c35a6aea054b691ab53d733f93b4be71d",
     "evals/behavior-ab/baselines/brain/scripts/brain.py": "08fb14f20a41f3b17af6e82994bd50db9e62ccc8e4d6b6e27f4575316c8be335",
@@ -42,9 +42,9 @@
     "evals/behavior-ab/candidates.json": "6bc9a5a762e75f4da81ba22bdcb3c7d45ea314297b3ec60cd05a3a36b5c00187",
     "evals/behavior-ab/fake_pi.py": "87e68a0b2f195f3984c68e3fff15d5a14059f566ba2edd4090d51a23cb316d1e",
     "evals/behavior-ab/plan.json": "8fa39c0acd62d1b7aaeccbe7703d5552b8ca5f5b58a73a80bc92dee7b39005c0",
-    "evals/behavior-ab/run.py": "05d2b6106479484f84f5d1eb552b256ec27c1b94800029db16f763f30280fd15",
+    "evals/behavior-ab/run.py": "5af093a6add90c79de15a9b05bb39cb8f4cf7252c61ea57a530dd909a5875a12",
     "evals/behavior-ab/tasks.py": "6a843b37547490adcf0838f16e7f5d7726f39a91599a0b19ce63439737d1c0ee",
-    "evals/behavior-ab/test_behavior_ab.py": "096a65f6e778939f3b20af0789a817058750c3a372bc247c201cc7a945231406",
+    "evals/behavior-ab/test_behavior_ab.py": "92582809374b4acaa4ec038f5fc506525d1c042b7f4da456b7bda248afb1cdb1",
     "evals/harness-ab/dst_lint.py": "5799d00eb6b7930e7ce800eb10739aa28a73b5313ea998bf884cf857034493fe",
     "evals/harness-ab/regrade.py": "aa17b8612b0d1a20915ad3566ceb06372030bd70b3021305a51a91e5417d3576",
     "evals/harness-ab/report.py": "b3322e69f335da0ba3ff9f311cd2706cdbf09e49ae4205816d3f7347e5cc096a",
@@ -62,5 +62,5 @@
     "evals/outcome/verdict.py": "9afe39dbbaa41bf0afb7fc90956a4271610a213f8de3fb70ec1e9b0e436524da",
     "scripts/split_skill.py": "c4d078ace17df56089beed8cee9d981c4d6c361e9d15a5115ba2e94f3cb6d2fd"
   },
-  "registered_at": "2026-11-15T14:59:37Z"
+  "registered_at": "2026-11-15T15:01:19Z"
 }
