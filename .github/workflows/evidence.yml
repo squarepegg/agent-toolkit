@@ -28,6 +28,14 @@ jobs:
         run: uv run --no-project --python ${{ matrix.python }} evals/behavior-ab/test_behavior_ab.py
       - name: behavioral candidate ledger and registered inputs (offline; no local provider required)
         run: uv run --no-project --python ${{ matrix.python }} evals/behavior-ab/run.py report
+      - name: native Codex behavioral verdict properties
+        run: uv run --no-project --python ${{ matrix.python }} evals/behavior-native/test_native.py
+      - name: native Codex registered inputs and measured results (offline)
+        run: uv run --no-project --python ${{ matrix.python }} evals/behavior-native/native.py report
+      - name: conservative stopping proof and saved native evidence
+        run: |
+          uv run --no-project --python ${{ matrix.python }} evals/behavior-native-analysis/test_futility.py
+          uv run --no-project --python ${{ matrix.python }} evals/behavior-native-analysis/test_evidence.py
       - name: committed ledger is valid; verdicts recomputed
         run: uv run --no-project --python ${{ matrix.python }} evals/outcome/verdict.py
       - name: evals/STATUS.md matches claims + ledger

@@ -1,0 +1,116 @@
+{
+  "experiment": "b7395bad69d53c7bb48fcf9f73d53aaa9eeb31f3a899511f8f8874601bb9f982",
+  "ledger_sha256": "641fdb82a455fe8f63e88be8348ab8d59055439c3a741bd1d36080f79e0f47b8",
+  "post_hoc_stopping_analysis": true,
+  "analysis": {
+    "observations": 60,
+    "planned_observations": 120,
+    "all_candidates_futile": true,
+    "cells": [
+      {
+        "task": "activation",
+        "model": "gpt-6.1-sol",
+        "observed": {
+          "baseline": "4/4",
+          "candidate": "4/4",
+          "control": "4/4"
+        },
+        "candidate_max_final_passes": 5,
+        "best_p_vs_baseline": 0.5,
+        "best_p_vs_control": 0.5,
+        "could_meet_significance_rule": false
+      },
+      {
+        "task": "activation",
+        "model": "gpt-6.1-terra",
+        "observed": {
+          "baseline": "4/4",
+          "candidate": "4/4",
+          "control": "4/4"
+        },
+        "candidate_max_final_passes": 5,
+        "best_p_vs_baseline": 0.5,
+        "best_p_vs_control": 0.5,
+        "could_meet_significance_rule": false
+      },
+      {
+        "task": "stopping",
+        "model": "gpt-6.1-sol",
+        "observed": {
+          "baseline": "1/2",
+          "candidate": "2/2",
+          "control": "0/2"
+        },
+        "candidate_max_final_passes": 5,
+        "best_p_vs_baseline": 0.023809523809523808,
+        "best_p_vs_control": 0.003968253968253968,
+        "could_meet_significance_rule": false
+      },
+      {
+        "task": "stopping",
+        "model": "gpt-6.1-terra",
+        "observed": {
+          "baseline": "0/2",
+          "candidate": "0/2",
+          "control": "0/2"
+        },
+        "candidate_max_final_passes": 3,
+        "best_p_vs_baseline": 0.08333333333333333,
+        "best_p_vs_control": 0.08333333333333333,
+        "could_meet_significance_rule": false
+      },
+      {
+        "task": "recovery",
+        "model": "gpt-6.1-sol",
+        "observed": {
+          "baseline": "0/2",
+          "candidate": "1/2",
+          "control": "0/2"
+        },
+        "candidate_max_final_passes": 4,
+        "best_p_vs_baseline": 0.023809523809523808,
+        "best_p_vs_control": 0.023809523809523808,
+        "could_meet_significance_rule": false
+      },
+      {
+        "task": "recovery",
+        "model": "gpt-6.1-terra",
+        "observed": {
+          "baseline": "0/2",
+          "candidate": "1/2",
+          "control": "1/2"
+        },
+        "candidate_max_final_passes": 4,
+        "best_p_vs_baseline": 0.023809523809523808,
+        "best_p_vs_control": 0.10317460317460317,
+        "could_meet_significance_rule": false
+      },
+      {
+        "task": "revalidation",
+        "model": "gpt-6.1-sol",
+        "observed": {
+          "baseline": "2/2",
+          "candidate": "2/2",
+          "control": "2/2"
+        },
+        "candidate_max_final_passes": 5,
+        "best_p_vs_baseline": 0.08333333333333333,
+        "best_p_vs_control": 0.08333333333333333,
+        "could_meet_significance_rule": false
+      },
+      {
+        "task": "revalidation",
+        "model": "gpt-6.1-terra",
+        "observed": {
+          "baseline": "2/2",
+          "candidate": "1/2",
+          "control": "2/2"
+        },
+        "candidate_max_final_passes": 4,
+        "best_p_vs_baseline": 0.2619047619047619,
+        "best_p_vs_control": 0.2619047619047619,
+        "could_meet_significance_rule": false
+      }
+    ]
+  }
+}

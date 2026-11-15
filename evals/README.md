@@ -15,6 +15,9 @@ Current state of every skill: [`STATUS.md`](STATUS.md) (generated, and CI checks
 Narrow changes to existing workflows use [`behavior-ab/`](behavior-ab/README.md): current skill vs candidate overlay
 vs a length-matched generic control, including discovery activation, turn boundaries, paired save/resume sessions,
 and bounded fact revalidation. This is a prospective experiment, separate from evidence for the existing skills.
+The [native Codex comparison](behavior-native/RESULTS.md) records 60 actual Sol/Terra trials and a conservative
+stopping proof; none earned adoption. Its partial counts and post-hoc grading diagnosis remain distinct from
+completed outcome-study verdicts.
 
 ## A. Witnesses
 
