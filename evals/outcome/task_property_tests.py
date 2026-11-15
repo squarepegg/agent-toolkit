@@ -1,7 +1,13 @@
-"""Outcome task: does skills/property-tests make an agent write tests that catch plausible wrong implementations?
+"""Outcome task: does skills/property-tests make an agent write tests that catch subtle wrong implementations?
 
-The agent improves weak example tests for merge_intervals. Grading reruns the agent's tests against the real code and
-against four plausible wrong implementations (mutants). No model grades anything.
+The agent is asked whether four example tests for a CSV row formatter/parser are good enough, and to improve them.
+Grading reruns the agent's tests against the real code and against seven plausible wrong implementations (mutants),
+each a one-line change that the four original examples cannot see. Each is only reached by an input a generator aimed
+at edge cases produces (a single empty field, a trailing empty field, whitespace, a field with both a comma and a quote,
+more than 32 fields) or by checking the examples are not the whole behaviour (the lookup). No model grades anything.
+
+History: the first version of this task (merge_intervals) hit CEILING (5/5 in every arm, sonnet-5-5 medium): replaced
+by this one before any skill-arm result informed the new design (see evals/negative-results.md).
 """
 import os
 import re
@@ -13,61 +19,115 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "harness-ab"))
 from tasks import init_repo, unittest_outcomes  # noqa: E402
 
+MUT_NAMES = ["empty_single", "trailing_empty", "strip", "comma_and_quote", "quote_only_comma", "long_rows", "lookup"]
 # Pre-registered (changing any of this changes the task hash and stales old ledger rows)
 PREREG = {"n": 5, "alpha": 0.05, "ceiling": 0.8,
-          "primary": ["passes_real", "kills_touching", "kills_unsorted", "kills_nested", "kills_lookup", "src_unchanged"]}
+          "primary": ["passes_real", *[f"kills_{m}" for m in MUT_NAMES], "src_unchanged"]}
 
-REAL = '''"""Interval merging."""
+REAL = '''"""One CSV row: format a list of fields into a line, and parse a line back. No newlines inside a row."""
 
 
-def merge_intervals(intervals):
-    """Merge overlapping or touching closed integer intervals.
-
-    intervals: list of (start, end) with start <= end, in any order. Returns a new sorted list of disjoint intervals
-    covering exactly the same points. Touching intervals merge: [(1, 2), (2, 3)] -> [(1, 3)].
-    """
+def format_row(fields):
+    """Join fields with commas. A field is quoted (inner quotes doubled) if it contains a comma or a quote, and the
+    only field of a row is quoted when it is empty, so that [] formats as "" and [""] as '""'."""
+    if fields == [""]:
+        return '""'
     out = []
-    for s, e in sorted(intervals):
-        if out and s <= out[-1][1]:
-            out[-1] = (out[-1][0], max(out[-1][1], e))
+    for f in fields:
+        if "," in f or '"' in f:
+            out.append('"' + f.replace('"', '""') + '"')
         else:
-            out.append((s, e))
-    return out
+            out.append(f)
+    return ",".join(out)
+
+
+def parse_row(line):
+    """Inverse of format_row: parse_row(format_row(x)) == x for every list x of strings without newlines."""
+    if line == "":
+        return []
+    fields, cur, i, n, inq = [], [], 0, len(line), False
+    while i < n:
+        c = line[i]
+        if inq:
+            if c == '"':
+                if i + 1 < n and line[i + 1] == '"':
+                    cur.append('"')
+                    i += 2
+                    continue
+                inq = False
+            else:
+                cur.append(c)
+        elif c == '"':
+            inq = True
+        elif c == ",":
+            fields.append("".join(cur))
+            cur = []
+        else:
+            cur.append(c)
+        i += 1
+    fields.append("".join(cur))
+    return fields
 '''
 
+KNOWN_FMT = ('def format_row(fields):\n    known = {("a", "b"): "a,b", ("a,b", "c"): \'"a,b",c\'}\n'
+             '    return known.get(tuple(fields), ",".join(fields))\n')
+KNOWN_PARSE = ('def parse_row(line):\n    known = {"a,b": ["a", "b"], \'"a,b",c\': ["a,b", "c"]}\n'
+               '    return known.get(line, line.split(",") if line else [])\n')
+
+
+def _sub(old, new):
+    assert REAL.count(old) == 1, old
+    return REAL.replace(old, new)
+
+
 MUTANTS = {
-    "touching": REAL.replace("if out and s <= out[-1][1]:", "if out and s < out[-1][1]:"),
-    "unsorted": REAL.replace("for s, e in sorted(intervals):", "for s, e in intervals:"),
-    "nested": REAL.replace("out[-1] = (out[-1][0], max(out[-1][1], e))", "out[-1] = (out[-1][0], e)"),
-    "lookup": REAL.replace("    out = []\n", "    known = {((1, 3), (2, 6), (8, 10)): [(1, 6), (8, 10)], ((1, 4), (5, 6)): [(1, 4), (5, 6)]}\n"
-                                             "    return known.get(tuple(intervals), sorted(intervals))\n    out = []\n"),
+    # [""] formats as "" (and so parses back as []): only the one-field-empty-row reaches it
+    "empty_single": _sub('    if fields == [""]:\n        return \'""\'\n', ""),
+    # a trailing empty field is lost: "a," -> ["a"]
+    "trailing_empty": _sub('    fields.append("".join(cur))\n    return fields', '    if cur:\n        fields.append("".join(cur))\n    return fields'),
+    # fields lose surrounding whitespace
+    "strip": _sub('            fields.append("".join(cur))\n            cur = []', '            fields.append("".join(cur).strip())\n            cur = []'),
+    # inner quotes are doubled only when the field has no comma: fields with BOTH a comma and a quote break
+    "comma_and_quote": _sub("out.append('\"' + f.replace('\"', '\"\"') + '\"')", "out.append('\"' + (f if \",\" in f else f.replace('\"', '\"\"')) + '\"')"),
+    # fields with a quote but no comma are not quoted
+    "quote_only_comma": _sub('if "," in f or \'"\' in f:', 'if "," in f:'),
+    # rows are cut at 32 fields (a fixed buffer)
+    "long_rows": _sub("    out = []\n    for f in fields:", "    out = []\n    for f in fields[:32]:"),
+    # the dumbest implementation that passes the four examples: a lookup of them, naive join/split otherwise
+    "lookup": '"""lookup of the examples"""\n\n\n' + KNOWN_FMT + "\n\n" + KNOWN_PARSE,
 }
-assert all(m != REAL for m in MUTANTS.values())
+assert all(m != REAL for m in MUTANTS.values()) and set(MUTANTS) == set(MUT_NAMES)
 
 TEST_EXISTING = '''import unittest
-from intervals import merge_intervals
+from csvline import format_row, parse_row
 
 
-class MergeTest(unittest.TestCase):
-    def test_overlap(self):
-        self.assertEqual(merge_intervals([(1, 3), (2, 6), (8, 10)]), [(1, 6), (8, 10)])
+class CsvRowTest(unittest.TestCase):
+    def test_format_plain(self):
+        self.assertEqual(format_row(["a", "b"]), "a,b")
 
-    def test_disjoint(self):
-        self.assertEqual(merge_intervals([(1, 4), (5, 6)]), [(1, 4), (5, 6)])
+    def test_format_quotes_commas(self):
+        self.assertEqual(format_row(["a,b", "c"]), '"a,b",c')
+
+    def test_parse_plain(self):
+        self.assertEqual(parse_row("a,b"), ["a", "b"])
+
+    def test_parse_quoted(self):
+        self.assertEqual(parse_row('"a,b",c'), ["a,b", "c"])
 
 
 if __name__ == "__main__":
     unittest.main()
 '''
 
-PROMPT = ("Are the tests in tests/test_intervals.py good enough? Improve them. This is a test-only task: do not change "
-          "intervals.py. No third-party packages are installed; tests run with "
+PROMPT = ("Are the tests in tests/test_csvline.py good enough? Improve them. This is a test-only task: do not change "
+          "csvline.py. No third-party packages are installed; tests run with "
           "`python3 -m unittest discover -s tests -t .`. Tell me what you found.")
 
 
 def setup(r):
-    init_repo(r, {"intervals.py": REAL, "tests/__init__.py": "", "tests/test_intervals.py": TEST_EXISTING,
-                  "README.md": "intervals. Tests: python3 -m unittest discover -s tests -t .\n"})
+    init_repo(r, {"csvline.py": REAL, "tests/__init__.py": "", "tests/test_csvline.py": TEST_EXISTING,
+                  "README.md": "csvline. Tests: python3 -m unittest discover -s tests -t .\n"})
 
 
 def user(turn, text):
@@ -80,7 +140,7 @@ def _outcomes_with(r, src):
     d = tempfile.mkdtemp(prefix="pt-grade-")
     try:
         shutil.copytree(os.path.join(r, "tests"), os.path.join(d, "tests"))
-        with open(os.path.join(d, "intervals.py"), "w") as f:
+        with open(os.path.join(d, "csvline.py"), "w") as f:
             f.write(src)
         return unittest_outcomes(d, timeout=300)
     finally:
@@ -99,46 +159,49 @@ def grade(r, final_text, all_text, bash_cmds):
         o = _outcomes_with(r, src)
         checks[f"kills_{name}"] = not _green(o)
         detail[name] = {k: v for k, v in o.items() if v != "ok"}
-    checks["src_unchanged"] = open(os.path.join(r, "intervals.py")).read() == REAL
-    checks["names_dumb_implementation"] = bool(re.search(r"hard.?cod|dumb|lookup|cheat", all_text, re.I))
+    with open(os.path.join(r, "csvline.py")) as f:
+        checks["src_unchanged"] = f.read() == REAL
+    checks["names_dumb_implementation"] = bool(re.search(r"hard.?cod|dumb|lookup|cheat", all_text, re.I))   # secondary
     return checks, detail
 
 
 # --------------------------------------------------------------------------- grader fixtures (CI pins the grader both ways)
-REFERENCE_TESTS = '''import random
-import unittest
-from intervals import merge_intervals
+REFERENCE_TESTS = TEST_EXISTING.replace('''
+
+if __name__''', '''
+
+    def test_round_trip_generated(self):
+        import random
+        rng = random.Random(5)
+        alphabet = ["", "a", "b", " ", ",", '"', "é", "1"]
+        for _ in range(600):
+            size = rng.choice([0, 1, 1, 2, 3, 5, 33, 40])
+            fields = ["".join(rng.choice(alphabet) for _ in range(rng.choice([0, 0, 1, 2, 4]))) for _ in range(size)]
+            self.assertEqual(parse_row(format_row(fields)), fields, fields)
 
 
-def points(iv):
-    return {p for s, e in iv for p in range(s, e + 1)}
+if __name__''')
+
+NAIVE_TESTS = TEST_EXISTING.replace('''
+
+if __name__''', '''
+
+    def test_single_field(self):
+        self.assertEqual(parse_row(format_row(["hello"])), ["hello"])
+
+    def test_empty_row(self):
+        self.assertEqual(parse_row(format_row([])), [])
+
+    def test_round_trip_examples(self):
+        for fields in (["a", "b", "c"], ["x,y", "z"], ["1", "2"]):
+            self.assertEqual(parse_row(format_row(fields)), fields)
 
 
-class MergeProps(unittest.TestCase):
-    def test_properties(self):
-        rng = random.Random(3)
-        for _ in range(500):
-            iv = []
-            for _ in range(rng.randint(0, 6)):
-                s = rng.randint(0, 20)
-                iv.append((s, s + rng.randint(0, 6)))
-            out = merge_intervals(list(iv))
-            self.assertEqual(points(out), points(iv), iv)              # same points
-            self.assertEqual(out, sorted(out), iv)                      # sorted
-            for (a, b), (c, d) in zip(out, out[1:]):
-                self.assertGreater(c, b, iv)                            # disjoint, not touching (touching merges)
-            self.assertEqual(merge_intervals(out), out, iv)             # idempotent
-
-
-if __name__ == "__main__":
-    unittest.main()
-'''
-
-NAIVE_TESTS = TEST_EXISTING.replace("    def test_disjoint", "    def test_single(self):\n        self.assertEqual(merge_intervals([(2, 5)]), [(2, 5)])\n\n    def test_disjoint")
+if __name__''')
 
 
 def write_solution(r, which):
-    with open(os.path.join(r, "tests", "test_intervals.py"), "w") as f:
+    with open(os.path.join(r, "tests", "test_csvline.py"), "w") as f:
         f.write(REFERENCE_TESTS if which == "reference" else NAIVE_TESTS)
 
 

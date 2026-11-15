@@ -133,7 +133,7 @@ def validate_ledger():
         if tid not in T.TASKS:
             probs.append(f"{p}: no task {tid!r}")
             continue
-        seen = set()
+        seen, cur = set(), current_hashes(tid)
         for n, line in enumerate(_read(p).decode().splitlines(), 1):
             if not line.strip():
                 continue
@@ -154,7 +154,8 @@ def validate_ledger():
             if key in seen:
                 probs.append(f"{p}:{n}: duplicate run {key[:2]}")
             seen.add(key)
-            missing = [c for c in T.TASKS[tid]["prereg"]["primary"] if c not in r["checks"]]
+            # stale rows (older task/skill) were graded with the checks of their time: only current rows must have today's
+            missing = [c for c in T.TASKS[tid]["prereg"]["primary"] if c not in r["checks"]] if r["hashes"] == cur else []
             if missing:
                 probs.append(f"{p}:{n}: primary checks not graded: {missing}")
     return probs

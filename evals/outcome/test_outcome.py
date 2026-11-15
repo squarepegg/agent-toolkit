@@ -56,6 +56,30 @@ class Graders(unittest.TestCase):
         self.assertTrue(checks["passes_real"])
         self.assertEqual([k for k, v in checks.items() if k.startswith("kills_") and v], [])
 
+    def test_every_mutant_is_a_real_bug(self):
+        """no equivalent mutants: each differs from the real code, on some input the real code round-trips"""
+        import itertools
+        import task_property_tests as P
+        ns = {}
+        for name, src in {"real": P.REAL, **P.MUTANTS}.items():
+            ns[name] = {}
+            exec(compile(src, name, "exec"), ns[name])
+        strings = ["".join(c) for n in range(4) for c in itertools.product("a ,\"", repeat=n)]
+        cases = [list(c) for n in range(3) for c in itertools.product(strings, repeat=n)] + [["x"] * 33, ["x"] * 40]
+        real = ns["real"]
+        for c in cases:
+            self.assertEqual(real["parse_row"](real["format_row"](c)), c, c)           # the real code round-trips
+        for name in P.MUT_NAMES:
+            m = ns[name]
+            bad = []
+            for c in cases:
+                try:
+                    if m["parse_row"](m["format_row"](c)) != c:
+                        bad.append(c)
+                except Exception:
+                    bad.append(c)
+            self.assertTrue(bad, f"mutant {name} is equivalent to the real code on {len(cases)} cases")
+
     def test_prereg_is_complete(self):
         for tid, t in R.TASKS.items():
             p = t["prereg"]

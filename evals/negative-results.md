@@ -4,5 +4,6 @@ Re-try one only with new evidence: harder probes, a different model, or a change
 
 Format:
 - YYYY-MM-DD | candidate (source) | probes x samples, model | dev without -> with, heldout, cost | VERDICT
+2026-11-15 | property-tests outcome task v1 (merge_intervals, 4 mutants) | 5 runs x 3 arms, fortis-ai-gateway/claude-sonnet-5-5 medium | pass none 5/5, skill 5/5, control 5/5, $0.75 | CEILING: the model already writes mutant-killing tests without the skill; task replaced by a CSV row round trip with 7 subtler mutants (rows kept in evals/outcome/ledger as stale)
 2026-11-14 | dst: progressive disclosure, 13 sections moved to reference/sections (arXiv 2609.00006, harness-ab) | 5 runs x 1 task, default pi model | checks 75% -> 75%, input tokens 0.92x (bar 0.90), cost $11.12 -> $10.81 | NO_DELTA
 2026-11-14 | dst: dst_lint.py + hard rule to run it (arXiv 2609.00006, harness-ab) | 5 runs x 1 task, default pi model | rule violations 24 -> 0, lint clean 0/5 -> 5/5, but replays_identically 5/5 -> 4/5 (likely grading flake); pre-registered "nothing else worse" | REJECT (rerun needs its own pre-registration)
