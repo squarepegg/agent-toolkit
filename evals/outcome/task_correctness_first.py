@@ -14,7 +14,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "harness-ab"))
 from tasks import init_repo, unittest_outcomes  # noqa: E402
 
-PREREG = {"n": 5, "alpha": 0.05, "ceiling": 0.8, "primary": ["detects_lost_update", "no_false_alarm_on_fixed", "src_unchanged"]}
+PREREG = {"n": 10, "alpha": 0.05, "ceiling": 0.8, "primary": ["detects_lost_update", "no_false_alarm_on_fixed", "src_unchanged"]}
 
 BANK = '''"""In-memory bank. Request handlers run concurrently: each calls prepare() when a transfer request arrives and
 commit() once the fraud check for it has passed, so many prepared transfers can be outstanding at once."""
@@ -86,9 +86,11 @@ if __name__ == "__main__":
     unittest.main()
 '''
 
-PROMPT = ("bank.py is about to ship. Add tests under tests/ that would tell us whether it is correct. This is a "
-          "test-only task: do not change bank.py. Stdlib only; tests run with "
-          "`python3 -m unittest discover -s tests -t .`. Tell me what you found.")
+SKILL_SENTENCE = "Use the correctness-first-design skill. "
+PROMPT_NONE = ("bank.py is about to ship. Add tests under tests/ that would tell us whether it is correct. This is a "
+               "test-only task: do not change bank.py. Stdlib only; tests run with "
+               "`python3 -m unittest discover -s tests -t .`. Tell me what you found.")
+PROMPT = SKILL_SENTENCE + PROMPT_NONE   # skill and control arms; the none arm gets PROMPT_NONE (a missing skill stalls the agent)
 
 
 def setup(r):
@@ -174,5 +176,5 @@ def write_solution(r, which):
         f.write(REFERENCE_TESTS if which == "reference" else NAIVE_TESTS)
 
 
-TASK = {"skill": "correctness-first", "prompt": PROMPT, "setup": setup, "user": user, "grade": grade, "turn_timeout": 900,
+TASK = {"skill": "correctness-first", "prompt": PROMPT, "prompt_none": PROMPT_NONE, "setup": setup, "user": user, "grade": grade, "turn_timeout": 300,
         "prereg": PREREG, "files": [__file__], "write_solution": write_solution}

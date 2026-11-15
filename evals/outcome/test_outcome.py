@@ -123,7 +123,14 @@ def _rows(task_id, passes, model='["--model","p/m"]', hashes=None):
 
 
 class Verdicts(unittest.TestCase):
-    T = "correctness-first"   # n = 5: the cases below are written for 5 runs per arm
+    T = "correctness-first"
+
+    def setUp(self):   # the cases below are written for 5 runs per arm, whatever the task registers
+        self._n = R.TASKS[self.T]["prereg"]["n"]
+        R.TASKS[self.T]["prereg"]["n"] = 5
+
+    def tearDown(self):
+        R.TASKS[self.T]["prereg"]["n"] = self._n
 
     def v(self, **passes):
         return V.verdict(self.T, _rows(self.T, passes))["verdict"]
@@ -286,6 +293,11 @@ class EndToEndWithFakeAgent(unittest.TestCase):
         self.assertNotIn("skill", P.PROMPT_NONE.lower())
         self.assertTrue(P.PROMPT.startswith("Use the property-tests-from-examples skill."))
         self.assertTrue(P.PROMPT.endswith(P.PROMPT_NONE))      # otherwise identical
+
+    def test_correctness_first_none_arm_prompt(self):
+        import task_correctness_first as C
+        self.assertNotIn("skill", C.PROMPT_NONE.lower())
+        self.assertTrue(C.PROMPT.endswith(C.PROMPT_NONE) and C.PROMPT.startswith("Use the correctness-first-design skill."))
 
     def test_preflight_refuses_unpinned_model(self):
         import run as RUN
