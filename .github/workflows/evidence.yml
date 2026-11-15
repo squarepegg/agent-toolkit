@@ -24,6 +24,8 @@ jobs:
         run: uv run --no-project --python ${{ matrix.python }} evals/check_claims.py
       - name: outcome graders pinned both ways, verdict math, ledger tampering
         run: uv run --no-project --python ${{ matrix.python }} evals/outcome/test_outcome.py
+      - name: behavioral candidate graders, controls, recovery boundary and offline RPC
+        run: uv run --no-project --python ${{ matrix.python }} evals/behavior-ab/test_behavior_ab.py
       - name: committed ledger is valid; verdicts recomputed
         run: uv run --no-project --python ${{ matrix.python }} evals/outcome/verdict.py
       - name: evals/STATUS.md matches claims + ledger

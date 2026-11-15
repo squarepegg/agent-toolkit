@@ -14,7 +14,6 @@
   "max_cost_usd": 30,
   "max_cost_ratio": 1.5,
   "turn_timeout_seconds": 180,
-  "max_tool_messages_per_turn": 40,
   "primary": "Every development and held-out case passes in a repetition",
   "heldout": "Candidate case pass count must be at least each comparator's held-out count",
   "cost": "Candidate mean reported dollar cost <= 1.5x baseline; absent provider prices means cost unverified and no adoption",

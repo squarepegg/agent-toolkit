@@ -126,7 +126,27 @@ def json_answer(text):
 
 
 def app_unchanged(root):
-    return all((Path(root)/p).exists() and (Path(root)/p).read_text() == body for p, body in APP.items())
+    changes = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=all", "--", ".",
+        ":(exclude)brain", ":(exclude)specs", ":(exclude)source_calls.jsonl", ":(exclude)__pycache__"], cwd=root, text=True)
+    return not changes.strip()
+
+
+def only_state_changed(root):
+    changes = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=all", "--", ".",
+                                      ":(exclude)"+str(STATE), ":(exclude)**/__pycache__/**"], cwd=root, text=True)
+    return not changes.strip()
+
+
+def primary(task, case):
+    keys = {"app_unchanged"}
+    if task == "activation":
+        return keys | {"correct_activation", "fulfills_request"} | (set() if case.get("activate") else {"no_interview"})
+    if task == "stopping":
+        return keys | {"two_turns", "one_question_per_turn", "stop_after_question", "no_premature_implementation", "no_accepted_spec"}
+    if task == "recovery":
+        return keys | {"next_action", "passed_evidence", "failed_evidence", "unrun_evidence", "open_decision",
+                       "constraint_preserved", "not_authorized", "state_saved", "save_only_state", "resume_readonly"}
+    return keys | {"within_budget", "found_stale_fact", "reviewed_matches_evidence", "unreviewed_not_confirmed", "facts_unchanged"}
 
 
 def grade(root, task, case, log, skill_path, boundaries=None):
@@ -170,14 +190,14 @@ def grade(root, task, case, log, skill_path, boundaries=None):
             calls = [json.loads(line) for line in (Path(root)/"source_calls.jsonl").read_text().splitlines()]
         except (OSError, ValueError):
             pass
-        ids = [x.get("id") for x in calls if isinstance(x, dict)]
+        ids = [x.get("id") for x in calls if isinstance(x, dict) and isinstance(x.get("id"), str)]
         seen = set(ids)
         expected = seen & set(case["stale"])
         arrays = all(isinstance(obj.get(k), list) and all(isinstance(v, str) for v in obj[k])
                      for k in ("reviewed", "contradicted", "unreviewed"))
         checks.update({
             "within_budget": 0 < len(calls) <= 2 and len(seen) == len(calls) and seen <= set("abcd"),
-            "found_stale_fact": bool(expected) and arrays and set(obj["contradicted"]) == expected,
+            "found_stale_fact": bool(expected) and arrays and len(obj["contradicted"]) == len(expected) and set(obj["contradicted"]) == expected,
             "reviewed_matches_evidence": arrays and len(obj["reviewed"]) == len(seen) and set(obj["reviewed"]) == seen,
             "unreviewed_not_confirmed": arrays and len(obj["unreviewed"]) == len(set("abcd")-seen) and set(obj["unreviewed"]) == set("abcd")-seen,
             "facts_unchanged": not subprocess.check_output(["git", "diff", "HEAD", "--", "brain/facts", "source.py"], cwd=root, text=True)

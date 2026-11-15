@@ -12,6 +12,10 @@ Two tiers. Only the first runs in CI; nothing in CI calls a model.
 
 Current state of every skill: [`STATUS.md`](STATUS.md) (generated, and CI checks that it is current).
 
+Narrow changes to existing workflows use [`behavior-ab/`](behavior-ab/README.md): current skill vs candidate overlay
+vs a length-matched generic control, including discovery activation, turn boundaries, paired save/resume sessions,
+and bounded fact revalidation. This is a prospective experiment, separate from evidence for the existing skills.
+
 ## A. Witnesses
 
 Each witness (`evals/witness/w_*.py`) turns one quoted claim into an experiment with three arms:

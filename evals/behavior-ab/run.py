@@ -13,7 +13,9 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 import os
+import signal
 import shutil
 import subprocess
 import sys
@@ -23,8 +25,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
-sys.path.insert(0, str(HERE))
-import tasks as T
+_task_spec = importlib.util.spec_from_file_location("behavior_tasks", HERE / "tasks.py")
+T = importlib.util.module_from_spec(_task_spec)
+_task_spec.loader.exec_module(T)
 
 # Reuse the established harness and statistical verdict primitive instead of a second model-calling implementation.
 sys.path.insert(0, str(HERE.parent / "outcome"))
@@ -39,7 +42,7 @@ ARMS = tuple(PLAN["arms"])
 
 
 def inputs():
-    paths = list(HERE.rglob("*")) + list((HERE.parent/"outcome").rglob("*.py")) + list((HERE.parent/"harness-ab").rglob("*.py"))
+    paths = list(HERE.rglob("*")) + list((HERE.parent/"outcome").rglob("*.py")) + list((HERE.parent/"harness-ab").rglob("*.py")) + [ROOT/"scripts/split_skill.py", HERE.parent/"outcome/control.md"]
     return sorted(p for p in paths if p.is_file() and "__pycache__" not in p.parts and
                   p.name not in ("registration.json", "ledger.jsonl", "RESULTS.md"))
 
@@ -52,11 +55,40 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
+def extension_hashes(args):
+    """Pin explicit provider code as well as its local path; never copy auth/config into the experiment."""
+    out = {}
+    for i, arg in enumerate(args):
+        if arg not in ("-e", "--extension"):
+            continue
+        if i+1 == len(args):
+            raise ValueError("missing explicit extension path")
+        raw = args[i+1]
+        p = Path(raw).expanduser()
+        if not p.exists():
+            raise ValueError("explicit extension path does not exist: " + raw)
+        files = [p] if p.is_file() else [f for f in p.rglob("*") if f.is_file() and
+                f.suffix in (".ts", ".js", ".json") and not {"node_modules", ".git"} & set(f.relative_to(p).parts)]
+        out[raw] = {str(f.relative_to(p) if p.is_dir() else f.name):hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted(files)}
+    return out
+
+
+def pi_version():
+    with tempfile.TemporaryDirectory(prefix="behavior-pi-version-") as tmp:
+        env = {**os.environ, "PI_CODING_AGENT_DIR": tmp, "PI_OFFLINE": "1", "PI_SKIP_VERSION_CHECK": "1"}
+        p = subprocess.run([os.environ.get("EVAL_PI", "pi"), "--version"], env=env, capture_output=True, text=True, timeout=10)
+        if p.returncode or not p.stdout.strip():
+            raise RuntimeError("Cannot identify the installed Pi version")
+        return p.stdout.strip()
+
+
 def committed():
-    paths = [str(p.relative_to(ROOT)) for p in inputs()] + [str(REG.relative_to(ROOT))]
-    dirty = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=all", "--", *paths], cwd=ROOT, text=True)
-    if dirty.strip():
-        raise SystemExit("Commit the registered inputs before running:\n" + dirty)
+    # Compare actual bytes with HEAD; status alone misses ignored files and skip-worktree/assume-unchanged edits.
+    for p in inputs()+[REG]:
+        rel = str(p.relative_to(ROOT))
+        blob = subprocess.run(["git", "show", "HEAD:"+rel], cwd=ROOT, capture_output=True)
+        if p.is_symlink() or blob.returncode or blob.stdout != p.read_bytes():
+            raise SystemExit("Commit the registered inputs before running: " + rel)
 
 
 def registration():
@@ -65,6 +97,8 @@ def registration():
     reg = json.loads(REG.read_text())
     if reg["inputs"] != hashes():
         raise SystemExit("Experimental inputs changed; register and commit a NEW experiment before running.")
+    if reg["extensions"] != extension_hashes(reg["pi_args"]):
+        raise SystemExit("Provider extension changed; register a new experiment before running.")
     committed()
     return reg
 
@@ -80,17 +114,15 @@ def skill_text(task, arm):
         generic = (HERE.parent / "outcome/control.md").read_text()
         body = ("\n" + generic) * (1 + len(body)//len(generic))
         body = body[:len("\n\n## Session boundary protocol\n" + c["body"] + "\n")]
-    if "description" in c:
+    if "description" in c and arm == "candidate":
         lines = base.splitlines(keepends=True)
         for i, line in enumerate(lines):
             if line.startswith("description:"):
-                desc = "description: " + c["description"] + "\n"
-                if arm == "candidate":
-                    lines[i] = desc
-                else:
-                    # Keep the current activation wording; match the candidate's description length with neutral padding.
-                    pad = " Be thoughtful and clear."
-                    lines[i] = line.rstrip() + pad + "\n"
+                desc = "description: " + c["description"]
+                # Equal discovery-description length; preserve the baseline description verbatim in the control.
+                pad = " Follow the user's request carefully."
+                desc += (pad * (1 + len(line)//len(pad)))[:max(0, len(line.rstrip())-len(desc))]
+                lines[i] = desc + "\n"
                 break
         base = "".join(lines)
     return base + body
@@ -104,15 +136,6 @@ def build_skill(task, arm, dest):
     out = Path(dest) / base
     shutil.copytree(src, out)
     (out/"SKILL.md").write_text(skill_text(task, arm))
-    if task == "activation" and arm == "control":
-        # Match TOTAL instruction length, retaining the baseline description's exclusions.
-        text = (out/"SKILL.md").read_text()
-        target = len(skill_text(task, "candidate"))
-        head, sep, body = text.partition("\n\n## Session boundary protocol") if "\n\n## Session boundary protocol" in text else (text, "", "")
-        if len(text) > target:
-            # Candidate's shorter discovery description is part of the treatment; don't truncate baseline instructions.
-            # Exact length control is impossible when the baseline alone is longer. Report the imbalance explicitly.
-            pass
     return out
 
 
@@ -123,13 +146,19 @@ def session_func():
     return module.session
 
 
+def file_state(root):
+    return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in Path(root).rglob("*") if p.is_file() and ".git" not in p.relative_to(root).parts
+            and "__pycache__" not in p.parts}
+
+
 def worker(request):
     task, case, arm = request["task"], request["case"], request["arm"]
     base = Path(request["workdir"])
     repo = base / "first"
     T.setup(repo, task, case)
     skill = build_skill(task, arm, base/"skills")
-    os.environ["EVAL_PI_ARGS"] = json.dumps(request["pi_args"])
+    os.environ["EVAL_PI_ARGS"] = json.dumps([os.path.expanduser(x) for x in request["pi_args"]])
     os.environ["PI_CODING_AGENT_DIR"] = str(base/"pi-config")
     os.environ["PI_OFFLINE"] = "1"
     os.environ["PI_SKIP_VERSION_CHECK"] = "1"
@@ -148,7 +177,9 @@ def worker(request):
     if not usage["assistant_msgs"] or not any(x["assistant"] for x in log):
         raise RuntimeError("Pi returned no answer: verify the pinned model, explicit provider extension and gateway access")
     initial_log = log
+    extra_checks = {}
     if task == "recovery":
+        extra_checks["save_only_state"] = T.only_state_changed(repo)
         # Start a new process/workspace; copy only STATE.md from the save session, never its final response or chat.
         resumed = base / "resumed"
         T.setup(resumed, task, case)
@@ -159,13 +190,16 @@ def worker(request):
             shutil.copyfile(state, resumed/T.STATE)
         os.environ["BRAIN_DIR"] = str(resumed/"brain")
         os.environ["BRAIN_REPOS_ROOT"] = str(resumed)
+        before = file_state(resumed)
         log, usage2, finished2 = session(str(resumed), str(skill), T.RESUME, lambda n,t: None, PLAN["turn_timeout_seconds"])
+        extra_checks["resume_readonly"] = before == file_state(resumed)
         if not usage2["assistant_msgs"] or not any(x["assistant"] for x in log):
             raise RuntimeError("Pi returned no answer in the resume session")
         usage = {k: usage[k]+usage2[k] for k in usage}
         finished = finished and finished2
         repo = resumed
     checks = T.grade(repo, task, case, log, skill/"SKILL.md", boundaries)
+    checks.update(extra_checks)
     return {"finished": finished, "checks": checks, "pass": finished and all(checks.values()),
             "cost_usd": usage["cost"], "input_tokens": usage["input"]+usage["cacheRead"]+usage["cacheWrite"],
             "output_tokens": usage["output"], "wall_s": round(time.monotonic()-started, 2),
@@ -176,14 +210,45 @@ def rows():
     return [json.loads(line) for line in LEDGER.read_text().splitlines() if line.strip()] if LEDGER.exists() else []
 
 
+def bounded_process(cmd, timeout, **kwargs):
+    """Kill the whole worker group on timeout/interruption, including a stuck Pi child."""
+    data = kwargs.pop("input", None)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         text=True, start_new_session=True, **kwargs)
+    try:
+        stdout, stderr = p.communicate(data, timeout=timeout)
+        return subprocess.CompletedProcess(cmd, p.returncode, stdout, stderr)
+    except BaseException:
+        try:
+            os.killpg(p.pid, signal.SIGTERM)
+            p.wait(timeout=2)
+        except (ProcessLookupError, subprocess.TimeoutExpired):
+            pass
+        finally:
+            # A worker may exit while a child ignores SIGTERM. Kill the remaining group either way.
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            p.wait()
+        raise
+    finally:
+        for stream in (p.stdin, p.stdout, p.stderr):
+            if stream is not None:
+                stream.close()
+
+
 def preflight(reg):
     # Probe through the actual transport and provider. A failed probe is not a failed treatment observation.
+    if "pi_version" in reg and pi_version() != reg["pi_version"]:
+        raise RuntimeError("Pi version changed; register a new experiment before running")
     base = Path(tempfile.mkdtemp(prefix="behavior-preflight-"))
     env = {**os.environ, "PI_CODING_AGENT_DIR": str(base/"pi"), "PI_OFFLINE": "1", "PI_SKIP_VERSION_CHECK": "1"}
     cmd = [os.environ.get("EVAL_PI", "pi"), "--print", "--no-session", "--no-context-files", "--no-skills",
-           "--no-extensions", "--no-mcp", "--no-tools", *reg["pi_args"], "Reply with exactly MODEL_READY"]
+           "--no-extensions", *[os.path.expanduser(x) for x in reg["pi_args"]],
+           "--no-mcp", "--no-tools", "Reply with exactly MODEL_READY"]
     try:
-        result = subprocess.run(cmd, cwd=base, env=env, capture_output=True, text=True, timeout=45)
+        result = bounded_process(cmd, cwd=base, env=env, timeout=45)
         if result.returncode or not any(line.strip() == "MODEL_READY" for line in result.stdout.splitlines()):
             raise RuntimeError(f"model preflight failed (exit {result.returncode}); verify model/provider/gateway access")
     except subprocess.TimeoutExpired as e:
@@ -213,8 +278,7 @@ def run(reg):
                     request = {"task": task, "case": case, "arm": arm, "pi_args": reg["pi_args"], "workdir": base}
                     limit = (2 if task in ("stopping", "recovery") else 1)*PLAN["turn_timeout_seconds"]+20
                     try:
-                        p = subprocess.run([sys.executable, str(Path(__file__).resolve()), "worker"], input=json.dumps(request),
-                                           capture_output=True, text=True, timeout=limit)
+                        p = bounded_process([sys.executable, str(Path(__file__).resolve()), "worker"], input=json.dumps(request), timeout=limit)
                         if p.returncode:
                             raise RuntimeError("worker failed: " + p.stderr[-1200:])
                         result = json.loads(p.stdout)
@@ -233,18 +297,34 @@ def run(reg):
                     print(f"{task}/{case['id']}/{arm}/{i}: pass={row['pass']} cost=${row['cost_usd']:.3f} "
                           f"fails={[k for k,v in row['checks'].items() if not v]}", flush=True)
                     shutil.rmtree(base, ignore_errors=True)
+                    if result["cost_usd"] <= 0:
+                        print("Provider prices unavailable; cost cap cannot be enforced. Stopping without an adoption verdict.")
+                        return 1
     return 0
 
 
 def summarize(task, data):
     expected = {(arm, i, c["id"]) for arm in ARMS for i in range(PLAN["repeats"]) for c in T.CASES[task]}
-    actual = [(r["arm"], r["i"], r["case"]) for r in data]
-    out = {"task": task, "verdict": "NOT_RUN", "scores": {}, "cost_usd": round(sum(r["cost_usd"] for r in data), 4)}
+    out = {"task": task, "verdict": "NOT_RUN", "scores": {}, "cost_usd": 0}
     if not data:
         return out
-    if len(set(actual)) != len(actual) or not set(actual) <= expected:
+    if any(not isinstance(r, dict) or {"arm", "i", "case", "cost_usd", "checks"}-r.keys() or
+           not isinstance(r["checks"], dict) or type(r["i"]) is not int or
+           not isinstance(r["arm"], str) or not isinstance(r["case"], str) for r in data):
         out["verdict"] = "INVALID_LEDGER"
         return out
+    actual = [(r["arm"], r["i"], r["case"]) for r in data]
+    cases = {c["id"]:c for c in T.CASES[task]}
+    malformed = any(r.get("split") != cases.get(r.get("case"), {}).get("split") or
+                    set(r.get("checks", {})) != T.primary(task, cases.get(r.get("case"), {})) or
+                    not isinstance(r.get("finished"), bool) or
+                    any(type(v) is not bool for v in r.get("checks", {}).values()) or
+                    not isinstance(r.get("cost_usd"), (float, int)) or
+                    not math.isfinite(r.get("cost_usd", float("nan"))) or r.get("cost_usd", -1) < 0 for r in data)
+    if malformed or len(set(actual)) != len(actual) or not set(actual) <= expected:
+        out["verdict"] = "INVALID_LEDGER"
+        return out
+    out["cost_usd"] = round(sum(r["cost_usd"] for r in data), 4)
     if set(actual) != expected:
         out["verdict"] = "INCOMPLETE"
         return out
@@ -261,6 +341,8 @@ def summarize(task, data):
     out["cost_ratio"] = costs["candidate"]/costs["baseline"] if costs["baseline"] > 0 else None
     if score["baseline"]/n >= PLAN["ceiling"]:
         out["verdict"] = "CEILING"
+    elif all(s == 0 for s in score.values()):
+        out["verdict"] = "FLOOR"
     elif out["heldout"]["candidate"] < max(out["heldout"]["baseline"], out["heldout"]["control"]):
         out["verdict"] = "REGRESSION"
     elif score["candidate"] <= score["baseline"]:
@@ -304,7 +386,8 @@ def main():
             p.error("Archive the existing ledger before registering a new experiment; never silently replace its registration")
         # Pin an explicit, minimal tool surface; global packages, context and skills are disabled by session().
         args += ["--no-mcp", "--tools", "read,bash,edit,write"]
-        reg = {"pi_args": args, "inputs": hashes(), "registered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        reg = {"pi_args": args, "pi_version": pi_version(), "extensions": extension_hashes(args),
+               "inputs": hashes(), "registered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
         REG.write_text(json.dumps(reg, indent=2)+"\n")
         print(f"Registered {digest(reg)}; commit inputs before running. No model calls made.")
         return 0
