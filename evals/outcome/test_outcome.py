@@ -253,6 +253,15 @@ class Verdicts(unittest.TestCase):
         rows = _rows(self.T, {"none": 0, "skill": 5})
         self.assertEqual(V.verdict(self.T, rows)["verdict"], "INCOMPLETE")
 
+    def test_models_are_never_mixed(self):
+        a = _rows(self.T, {"none": 0, "skill": 5, "control": 0}, model='["--model","p/strong"]')
+        b = _rows(self.T, {"none": 4, "skill": 5, "control": 4}, model='["--model","p/weak"]')
+        self.assertEqual(V.verdict(self.T, a + b)["verdict"], "MIXED_MODELS")          # no model given: refuse to pool
+        by = {V.model_name(v["model"]): v["verdict"] for v in V.verdict_all(self.T, a + b)}
+        self.assertEqual(by, {"p/strong": "WORTHWHILE", "p/weak": "CEILING"})
+        self.assertEqual(V.verdict(self.T, a + b, model='["--model","p/strong"]')["score"]["none"], (0, 5))
+        self.assertEqual(V.model_name('["-e","x","--model","p/m","--thinking","medium"]'), "p/m (thinking medium)")
+
     def test_stale_rows_do_not_count(self):
         rows = _rows(self.T, {"none": 0, "skill": 5, "control": 0}, hashes={"skill": "old", "control": "x", "task": "y"})
         v = V.verdict(self.T, rows)

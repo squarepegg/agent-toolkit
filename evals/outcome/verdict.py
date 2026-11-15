@@ -120,17 +120,43 @@ def passed(row, primary):
     return bool(row.get("finished")) and all(row["checks"].get(c) is True for c in primary)
 
 
-def verdict(task_id, rows=None):
+def model_name(args_json):
+    """'["-e","x","--model","p/m","--thinking","medium"]' -> 'p/m (thinking medium)'"""
+    try:
+        a = json.loads(args_json)
+        m = a[a.index("--model") + 1]
+        return m + (f" (thinking {a[a.index('--thinking') + 1]})" if "--thinking" in a else "")
+    except (ValueError, IndexError, TypeError):
+        return str(args_json)
+
+
+def models_in(task_id, rows=None):
+    """models with at least one current row (a verdict is per model: arms are never mixed across models)"""
+    rows = load_rows(task_id) if rows is None else rows
+    cur = current_hashes(task_id)
+    return sorted({r["model"] for r in rows if r.get("hashes") == cur})
+
+
+def verdict_all(task_id, rows=None):
+    rows = load_rows(task_id) if rows is None else rows
+    return [verdict(task_id, rows, m) for m in models_in(task_id, rows)] or [verdict(task_id, rows)]
+
+
+def verdict(task_id, rows=None, model=None):
     t = T.TASKS[task_id]
     pre = t["prereg"]
     rows = load_rows(task_id) if rows is None else rows
     cur = current_hashes(task_id)
-    fresh = [r for r in rows if r.get("hashes") == cur]
+    fresh = [r for r in rows if r.get("hashes") == cur and (model is None or r.get("model") == model)]
+    if model is None and len({r.get("model") for r in fresh}) > 1:
+        return {"task": task_id, "skill": t["skill"], "verdict": "MIXED_MODELS", "model": None, "stale_rows": len(rows) - len(fresh),
+                "score": {a: (0, 0) for a in ARMS}, "cell": {a: "?" for a in ARMS}, "cost_usd": 0.0, "models": [],
+                "note": "rows from several models: use verdict_all / verdict(task, model=...)"}
     by = {a: [r for r in fresh if r["arm"] == a] for a in ARMS}
     if "score" in pre:
         return _verdict_score(task_id, t, pre, rows, fresh, by)
     score = {a: (sum(passed(r, pre["primary"]) for r in by[a]), len(by[a])) for a in ARMS}
-    out = {"task": task_id, "skill": t["skill"], "score": score, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
+    out = {"task": task_id, "skill": t["skill"], "model": model, "score": score, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
            "cell": {a: f"{score[a][0]}/{score[a][1]}" for a in ARMS},
            "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in fresh), 2),
            "models": sorted({r.get("model", "?") for r in fresh})}
@@ -160,7 +186,7 @@ def _verdict_score(task_id, t, pre, rows, fresh, by):
     cfg, mx = pre["score"], len(pre["score"]["kills"])
     scores = {a: [run_score(r, cfg) for r in by[a]] for a in ARMS}
     mean = {a: (sum(scores[a]) / len(scores[a]) if scores[a] else 0.0) for a in ARMS}
-    out = {"task": task_id, "skill": t["skill"], "mode": "score", "max": mx, "scores": scores,
+    out = {"task": task_id, "skill": t["skill"], "model": fresh[0]["model"] if fresh else None, "mode": "score", "max": mx, "scores": scores,
            "score": {a: (round(mean[a], 2), len(scores[a])) for a in ARMS}, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
            "cell": {a: f"{mean[a]:.1f}/{mx}" for a in ARMS},
            "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in fresh), 2),
@@ -225,7 +251,7 @@ def validate_ledger():
 
 
 def main(argv):
-    res = [verdict(t) for t in T.TASKS]
+    res = [v for t in T.TASKS for v in verdict_all(t)]
     probs = validate_ledger()
     if "--json" in argv:
         print(json.dumps({"verdicts": res, "problems": probs}, indent=1))
@@ -233,7 +259,7 @@ def main(argv):
         for v in res:
             sc = " ".join(f"{a} {v['cell'][a]}" for a in ARMS)
             p = f" p(vs none)={v.get('p_vs_none')} p(vs control)={v.get('p_vs_control')}" if "p_vs_none" in v else ""
-            print(f"{v['task']:18} {v['verdict']:12} {sc}{p} stale={v['stale_rows']} ${v['cost_usd']}")
+            print(f"{v['task']:18} {v['verdict']:12} {sc}{p} stale={v['stale_rows']} ${v['cost_usd']} {model_name(v['model']) if v.get('model') else ''}")
         for x in probs:
             print("LEDGER PROBLEM " + x)
     return 1 if probs else 0

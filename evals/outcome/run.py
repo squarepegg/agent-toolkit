@@ -142,7 +142,7 @@ def main(a):
     for t in task_ids:
         hashes = V.current_hashes(t)
         n = int(a[a.index("--n") + 1]) if "--n" in a else T.TASKS[t]["prereg"]["n"]
-        done = {(r["arm"], r["i"]) for r in V.load_rows(t) if r.get("hashes") == hashes}
+        done = {(r["arm"], r["i"]) for r in V.load_rows(t) if r.get("hashes") == hashes and r.get("model") == model}
         # interleave arms so drift in the model/provider over the run hits every arm alike
         work += [(t, arm, i, hashes) for i in range(n) for arm in arms if (arm, i) not in done]
     print(f"{len(work)} runs to do", flush=True)
