@@ -9,6 +9,8 @@ A row counts only if its hashes match the current skill, control and task files 
 A run passes when it finished and every pre-registered primary check is true.
 
 Verdicts per task (pre-registered `prereg` in the task file: n, alpha, ceiling, primary):
+  (a task whose prereg has a `score` block is compared on its mean score, 0..max, by an exact one-sided permutation
+   test instead of pass/fail with Fisher; WORTHWHILE then needs the skill's mean above both baselines, p <= alpha each)
   NOT_RUN       no current rows
   INCOMPLETE    some arm has fewer than n current rows
   CEILING       the no-skill arm already passes >= ceiling: the task cannot show value; write a harder task
@@ -91,6 +93,29 @@ def load_rows(task_id):
     return [json.loads(line) for line in _read(p).decode().splitlines() if line.strip()]
 
 
+def run_score(row, score_cfg):
+    """Mutation score of one run: the mutants killed, or 0 if it did not finish or a gate check failed (its tests fail
+    on the real code, or it edited the code under test)."""
+    c = row["checks"]
+    if not row.get("finished") or not all(c.get(g) is True for g in score_cfg["gate"]):
+        return 0
+    return sum(c.get(k) is True for k in score_cfg["kills"])
+
+
+def perm_p_greater(a, b):
+    """One-sided exact permutation p-value that arm a has a larger mean than arm b (integer scores): the share of the
+    ways to split the pooled scores into groups of len(a) and len(b) whose group-a sum is >= the observed sum."""
+    n1, pooled = len(a), list(a) + list(b)
+    total = sum(pooled)
+    dp = [dict() for _ in range(n1 + 1)]   # dp[j][sum] = ways to choose j scores summing to sum
+    dp[0][0] = 1
+    for x in pooled:
+        for j in range(min(n1, len(pooled)), 0, -1):
+            for ssum, ways in list(dp[j - 1].items()):
+                dp[j][ssum + x] = dp[j].get(ssum + x, 0) + ways
+    return sum(w for ssum, w in dp[n1].items() if ssum >= sum(a)) / comb(len(pooled), n1)
+
+
 def passed(row, primary):
     return bool(row.get("finished")) and all(row["checks"].get(c) is True for c in primary)
 
@@ -102,8 +127,11 @@ def verdict(task_id, rows=None):
     cur = current_hashes(task_id)
     fresh = [r for r in rows if r.get("hashes") == cur]
     by = {a: [r for r in fresh if r["arm"] == a] for a in ARMS}
+    if "score" in pre:
+        return _verdict_score(task_id, t, pre, rows, fresh, by)
     score = {a: (sum(passed(r, pre["primary"]) for r in by[a]), len(by[a])) for a in ARMS}
     out = {"task": task_id, "skill": t["skill"], "score": score, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
+           "cell": {a: f"{score[a][0]}/{score[a][1]}" for a in ARMS},
            "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in fresh), 2),
            "models": sorted({r.get("model", "?") for r in fresh})}
     if not fresh:
@@ -122,6 +150,36 @@ def verdict(task_id, rows=None):
     elif out["p_vs_none"] <= pre["alpha"] and out["p_vs_control"] <= pre["alpha"]:
         out["verdict"] = "WORTHWHILE"
     elif s / ns <= b / nb:
+        out["verdict"] = "NOT_WORTH"
+    else:
+        out["verdict"] = "INCONCLUSIVE"
+    return out
+
+
+def _verdict_score(task_id, t, pre, rows, fresh, by):
+    cfg, mx = pre["score"], len(pre["score"]["kills"])
+    scores = {a: [run_score(r, cfg) for r in by[a]] for a in ARMS}
+    mean = {a: (sum(scores[a]) / len(scores[a]) if scores[a] else 0.0) for a in ARMS}
+    out = {"task": task_id, "skill": t["skill"], "mode": "score", "max": mx, "scores": scores,
+           "score": {a: (round(mean[a], 2), len(scores[a])) for a in ARMS}, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
+           "cell": {a: f"{mean[a]:.1f}/{mx}" for a in ARMS},
+           "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in fresh), 2),
+           "models": sorted({r.get("model", "?") for r in fresh})}
+    if not fresh:
+        out["verdict"] = "NOT_RUN"
+        return out
+    if any(len(scores[a]) < pre["n"] for a in ARMS):
+        out["verdict"] = "INCOMPLETE"
+        return out
+    out["p_vs_none"] = round(perm_p_greater(scores["skill"], scores["none"]), 4)
+    out["p_vs_control"] = round(perm_p_greater(scores["skill"], scores["control"]), 4)
+    if all(m == 0 for m in mean.values()):
+        out["verdict"] = "FLOOR"
+    elif mean["none"] >= pre["ceiling"] * mx:
+        out["verdict"] = "CEILING"
+    elif mean["skill"] > max(mean["none"], mean["control"]) and out["p_vs_none"] <= pre["alpha"] and out["p_vs_control"] <= pre["alpha"]:
+        out["verdict"] = "WORTHWHILE"
+    elif mean["skill"] <= mean["none"]:
         out["verdict"] = "NOT_WORTH"
     else:
         out["verdict"] = "INCONCLUSIVE"
@@ -159,6 +217,8 @@ def validate_ledger():
             seen.add(key)
             # stale rows (older task/skill) were graded with the checks of their time: only current rows must have today's
             missing = [c for c in T.TASKS[tid]["prereg"]["primary"] if c not in r["checks"]] if r["hashes"] == cur else []
+            if r["hashes"] == cur and "score" in T.TASKS[tid]["prereg"] and r.get("score") != run_score(r, T.TASKS[tid]["prereg"]["score"]):
+                probs.append(f"{p}:{n}: stored score {r.get('score')} != recomputed from checks")
             if missing:
                 probs.append(f"{p}:{n}: primary checks not graded: {missing}")
     return probs
@@ -171,7 +231,7 @@ def main(argv):
         print(json.dumps({"verdicts": res, "problems": probs}, indent=1))
     else:
         for v in res:
-            sc = " ".join(f"{a} {v['score'][a][0]}/{v['score'][a][1]}" for a in ARMS)
+            sc = " ".join(f"{a} {v['cell'][a]}" for a in ARMS)
             p = f" p(vs none)={v.get('p_vs_none')} p(vs control)={v.get('p_vs_control')}" if "p_vs_none" in v else ""
             print(f"{v['task']:18} {v['verdict']:12} {sc}{p} stale={v['stale_rows']} ${v['cost_usd']}")
         for x in probs:

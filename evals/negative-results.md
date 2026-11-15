@@ -4,6 +4,7 @@ Re-try one only with new evidence: harder probes, a different model, or a change
 
 Format:
 - YYYY-MM-DD | candidate (source) | probes x samples, model | dev without -> with, heldout, cost | VERDICT
+2026-11-15 | correctness-first outcome tasks v1 + v2 (a single planted bug) | none arm 4/4 twice (bank lost update; KV store resurrected deletes), sonnet-5-5 medium | CEILING both times: a single bug an agent can find by reading saturates | replaced by v3: mutation score over 6 bugs of different classes (graded, permutation test)
 2026-11-15 | correctness-first outcome task v2 (log-structured KV store, 640+ ops, cold keys, restart) | pilot: 4 none-arm runs, sonnet-5-5 medium | none 4/4 pass (none of them named a workload or oracle: they read _merge and wrote a targeted test) | CEILING again: a single planted bug an agent can find by reading the code saturates; second miss in the same corner, so no v3 of this shape
 2026-11-15 | correctness-first outcome task v1 (bank.py lost update, visible by reading the code) | pilot: 4 none-arm runs, sonnet-5-5 medium | none 4/4 pass | CEILING: replaced by v2 (log-structured KV store; resurrected deletes after merge+restart, needs 640+ ops, cold keys, restart)
 2026-11-15 | correctness-first outcome task v1 reference bank (commit not idempotent) | pilot: 3 none-arm runs, sonnet-5-5 medium | 2 of 3 failed no_false_alarm_on_fixed: both wrote a valid 'commit twice applies once' test that my fixed bank violated | UNSOUND GRADER: fixed bank made idempotent and the contract stated in the visible docstring; rows kept, stale

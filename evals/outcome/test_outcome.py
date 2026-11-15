@@ -80,32 +80,49 @@ class Graders(unittest.TestCase):
                     bad.append(c)
             self.assertTrue(bad, f"mutant {name} is equivalent to the real code on {len(cases)} cases")
 
-    def test_correctness_first_bug_is_invisible_to_small_workloads(self):
-        """the planted bug only shows after 640+ ops with cold keys: the fixed store equals a dict model everywhere, the
-        buggy one equals it on every short workload (so a few examples cannot find it)"""
+    def test_correctness_first_scores(self):
+        """score task: the reference kills every mutant, naive additions kill few, the untouched tests kill none"""
+        import task_correctness_first as C
+        cfg = C.PREREG["score"]
+
+        def score(which):
+            c = _graded("correctness-first", which)
+            return V.run_score({"finished": True, "checks": c}, cfg)
+        self.assertEqual(score("reference"), len(C.MUT_NAMES))
+        self.assertEqual(score("untouched"), 0)
+        self.assertEqual(score("naive"), 1)
+
+    def test_correctness_first_mutants_are_real(self):
+        """each mutant behaves differently from the real store on some operation sequence (no equivalent mutants)"""
         import random
         import task_correctness_first as C
-        ns = {}
-        exec(compile(C.STORE, "buggy", "exec"), ns)
-        fx = {}
-        exec(compile(C.STORE_FIXED, "fixed", "exec"), fx)
+        mods = {}
+        for name, src in {"real": C.REAL, **C.MUTANTS}.items():
+            mods[name] = {}
+            exec(compile(src, name, "exec"), mods[name])
 
-        def run(cls, n_ops, keys, seed):
-            rng, s, model = random.Random(seed), cls(), {}
-            for i in range(n_ops):
-                op, k = rng.choice(["put", "put", "delete", "restart"]), f"k{rng.randrange(keys)}"
+        def trace(cls, seed):
+            rng, s, out = random.Random(seed), cls(), []
+            for i in range(1500):
+                op = rng.choice(["put", "put", "delete", "restart", "many"])
+                k = rng.choice(["h0", "h1"]) if rng.random() < 0.3 else f"k{rng.randrange(150)}"
                 if op == "put":
-                    s.put(k, i); model[k] = i
+                    s.put(k, rng.choice([0, "", i]))
                 elif op == "delete":
-                    s.delete(k); model.pop(k, None)
-                else:
+                    s.delete(k)
+                elif op == "restart":
                     s.restart()
+                else:
+                    try:
+                        s.put_many([(k, 1), (k + "x", None)])
+                    except TypeError:
+                        pass
+                out.append(s.get(k))
             s.restart()
-            return all(s.get(f"k{j}") == model.get(f"k{j}") for j in range(keys))
-        for seed in range(30):
-            self.assertTrue(run(fx["Store"], 1500, 150, seed), "fixed store must equal the model")
-            self.assertTrue(run(ns["Store"], 600, 150, seed), "below 640 ops nothing is merged yet")
-        self.assertFalse(all(run(ns["Store"], 1500, 150, seed) for seed in range(30)), "the planted bug must be reachable")
+            return out + [s.get(f"k{j}") for j in range(150)]
+        real = [trace(mods["real"]["Store"], seed) for seed in range(15)]
+        for name in C.MUT_NAMES:
+            self.assertNotEqual(real, [trace(mods[name]["Store"], seed) for seed in range(15)], f"{name} is equivalent")
 
     def test_prereg_is_complete(self):
         for tid, t in R.TASKS.items():
@@ -121,6 +138,69 @@ class Graders(unittest.TestCase):
         self.assertLessEqual(V.fisher_greater(5, 5, 1, 5), 0.05)
         self.assertLessEqual(V.fisher_greater(4, 5, 0, 5), 0.05)
         self.assertGreater(V.fisher_greater(4, 5, 1, 5), 0.05)
+
+
+class ScoreMode(unittest.TestCase):
+    def test_permutation_known_values(self):
+        self.assertAlmostEqual(V.perm_p_greater([6] * 5, [0] * 5), 1 / 252, places=6)
+        self.assertAlmostEqual(V.perm_p_greater([1, 2, 3], [1, 2, 3]), 14 / 20, places=9)   # identical groups: sums >= 6 in 14 of 20 splits
+        self.assertEqual(V.perm_p_greater([0] * 4, [3] * 4), 1.0)
+        self.assertAlmostEqual(V.perm_p_greater([1, 1, 0], [0, 0, 0]), 4 / 20, places=9)   # both 1s plus one 0: 4 of 20
+
+    def test_permutation_matches_brute_force(self):
+        import itertools
+        a, b = [3, 1, 4, 1, 5], [2, 6, 5, 3, 0]
+        pooled = a + b
+        hits = sum(sum(c) >= sum(a) for c in itertools.combinations(pooled, 5))
+        self.assertAlmostEqual(V.perm_p_greater(a, b), hits / len(list(itertools.combinations(pooled, 5))), places=9)
+
+    def test_run_score_gates(self):
+        cfg = {"kills": ["kills_a", "kills_b"], "gate": ["passes_real", "src_unchanged"]}
+        ok = {"passes_real": True, "src_unchanged": True, "kills_a": True, "kills_b": True}
+        self.assertEqual(V.run_score({"finished": True, "checks": ok}, cfg), 2)
+        self.assertEqual(V.run_score({"finished": False, "checks": ok}, cfg), 0)
+        self.assertEqual(V.run_score({"finished": True, "checks": {**ok, "passes_real": False}}, cfg), 0)   # failing tests do not score
+        self.assertEqual(V.run_score({"finished": True, "checks": {**ok, "src_unchanged": False}}, cfg), 0)
+
+    def rows(self, scores):
+        t = "correctness-first"
+        h, cfg = V.current_hashes(t), R.TASKS[t]["prereg"]["score"]
+        out = []
+        for arm, vals in scores.items():
+            for i, k in enumerate(vals):
+                checks = {"passes_real": True, "src_unchanged": True, **{f"kills_{m}": j < k for j, m in enumerate(
+                    [c[6:] for c in cfg["kills"]])}}
+                out.append({"task": t, "arm": arm, "i": i, "finished": True, "checks": checks, "hashes": h, "model": '["--model","x"]',
+                            "git_head": "x", "date": "d", "score": k})
+        return out
+
+    def test_verdicts(self):
+        t, saved = "correctness-first", R.TASKS["correctness-first"]["prereg"]["n"]
+        R.TASKS[t]["prereg"]["n"] = 5
+        try:
+            v = lambda **s: V.verdict(t, self.rows(s))["verdict"]
+            self.assertEqual(v(none=[1] * 5, skill=[5] * 5, control=[1] * 5), "WORTHWHILE")
+            self.assertEqual(v(none=[1, 2, 1, 2, 1], skill=[2, 3, 2, 3, 2], control=[2, 2, 1, 2, 2]), "INCONCLUSIVE")
+            self.assertEqual(v(none=[5] * 5, skill=[6] * 5, control=[5] * 5), "CEILING")
+            self.assertEqual(v(none=[0] * 5, skill=[0] * 5, control=[0] * 5), "FLOOR")
+            self.assertEqual(v(none=[3] * 5, skill=[2] * 5, control=[3] * 5), "NOT_WORTH")
+            self.assertEqual(v(none=[1] * 5, skill=[5] * 5, control=[5] * 5), "INCONCLUSIVE")   # the control does as well
+            self.assertEqual(V.verdict(t, self.rows({"none": [1] * 5, "skill": [5] * 5}))["verdict"], "INCOMPLETE")
+        finally:
+            R.TASKS[t]["prereg"]["n"] = saved
+
+    def test_stored_score_must_match_checks(self):
+        saved, tmp = V.LEDGER, tempfile.mkdtemp()
+        V.LEDGER = tmp
+        try:
+            rows = self.rows({"none": [1], "skill": [5], "control": [1]})
+            rows[1]["score"] = 6                          # a hand-edited score
+            with open(os.path.join(tmp, "correctness-first.jsonl"), "w") as f:
+                f.write("\n".join(json.dumps(r) for r in rows) + "\n")
+            self.assertIn("stored score", " ".join(V.validate_ledger()))
+        finally:
+            V.LEDGER = saved
+            shutil.rmtree(tmp)
 
 
 class Fisher(unittest.TestCase):
@@ -150,7 +230,7 @@ def _rows(task_id, passes, model='["--model","p/m"]', hashes=None):
 
 
 class Verdicts(unittest.TestCase):
-    T = "correctness-first"
+    T = "property-tests"
 
     def setUp(self):   # the cases below are written for 5 runs per arm, whatever the task registers
         self._n = R.TASKS[self.T]["prereg"]["n"]

@@ -110,6 +110,7 @@ def one(task_id, arm, i, arm_dir, model, head, hashes):
     row = {"task": task_id, "arm": arm, "i": i, "model": model, "git_head": head, "hashes": hashes,
            "date": datetime.date.today().isoformat(), "finished": finished, "checks": checks,
            "pass": V.passed({"finished": finished, "checks": checks}, t["prereg"]["primary"]),
+           **({"score": V.run_score({"finished": finished, "checks": checks}, t["prereg"]["score"])} if "score" in t["prereg"] else {}),
            "skill_read": any("SKILL.md" in x for x in reads), "cost_usd": round(usage["cost"], 4),
            "input_tokens": usage["input"] + usage["cacheRead"] + usage["cacheWrite"], "wall_s": round(time.time() - t0)}
     full = {**row, "detail": detail, "workdir": base, "log": log}

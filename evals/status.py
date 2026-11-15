@@ -34,13 +34,13 @@ def render():
         checkable = counts["witness"] + counts["tool"] + counts["gap"] + counts["model"]
         lines.append(f"| {d} | {counts['witness'] + counts['tool']}/{checkable} | {counts['policy']} | {counts['gap']} | {out} |")
     lines += ["", "## Agent outcome (laptop runs, recomputed from `evals/outcome/ledger/`)", "",
+              "Cells are runs passed (`k/n`) or, for mutation-score tasks, mean mutants killed (`mean/max`).", "",
               "| task | verdict | none | skill | control | p vs none | p vs control | stale rows | cost | model |",
               "|---|---|---|---|---|---|---|---|---|---|"]
     for t, v in verdicts.items():
-        s = v["score"]
-        lines.append(f"| {t} | {v['verdict']} | {s['none'][0]}/{s['none'][1]} | {s['skill'][0]}/{s['skill'][1]} | "
-                     f"{s['control'][0]}/{s['control'][1]} | {v.get('p_vs_none', '')} | {v.get('p_vs_control', '')} | "
-                     f"{v['stale_rows']} | ${v['cost_usd']} | {' '.join(v['models'])} |")
+        c = v["cell"]
+        lines.append(f"| {t} | {v['verdict']} | {c['none']} | {c['skill']} | {c['control']} | {v.get('p_vs_none', '')} | "
+                     f"{v.get('p_vs_control', '')} | {v['stale_rows']} | ${v['cost_usd']} | {' '.join(v['models'])} |")
     lines += ["", "## Claims", ""]
     for d, _, _ in table:
         doc = json.load(open(os.path.join(HERE, "claims", f"{d}.json")))
