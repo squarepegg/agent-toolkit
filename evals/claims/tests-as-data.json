@@ -1,0 +1,91 @@
+{
+ "skill": "tests-as-data",
+ "claims": [
+  {
+   "id": "shuffle",
+   "quote": "the runner's order must not matter (run shuffled once in CI)",
+   "kind": "witness",
+   "by": [
+    "tad-shuffle-once"
+   ]
+  },
+  {
+   "id": "golden-twice",
+   "quote": "Run each case twice and require identical output before approving.",
+   "kind": "witness",
+   "by": [
+    "tad-golden-double-run"
+   ]
+  },
+  {
+   "id": "check-runner",
+   "quote": "Check the runner yourself against real code and a deliberately wrong expectation (it must go red).",
+   "kind": "witness",
+   "by": [
+    "tad-runner-wrong-expectation"
+   ]
+  },
+  {
+   "id": "grader-both-ways",
+   "quote": "Fixtures that pin the grader both ways: a known-good answer must pass and a known-bad answer must fail.",
+   "kind": "witness",
+   "by": [
+    "tad-grader-both-ways"
+   ]
+  },
+  {
+   "id": "oracle",
+   "quote": "Mutation shows the tests catch faults, not that they are right.",
+   "kind": "witness",
+   "by": [
+    "tad-oracle-not-mutation"
+   ]
+  },
+  {
+   "id": "lookup-of-rows",
+   "quote": "Dumbest implementation that passes the table (a lookup of the rows)? Then the table is too small",
+   "kind": "witness",
+   "by": [
+    "pt-lookup-of-rows"
+   ]
+  },
+  {
+   "id": "no-assertion-no-parse",
+   "quote": "A test with no assertion must fail to parse",
+   "kind": "tool",
+   "by": [
+    "skills/tests-as-data/tests/test_tests_as_data.py"
+   ]
+  },
+  {
+   "id": "guard",
+   "quote": "exits 1 and names each violation",
+   "kind": "tool",
+   "by": [
+    "skills/tests-as-data/tests/test_tests_as_data.py"
+   ]
+  },
+  {
+   "id": "approve-refused-in-ci",
+   "quote": "refused when CI is set",
+   "kind": "tool",
+   "by": [
+    "skills/tests-as-data/tests/test_tests_as_data.py"
+   ]
+  },
+  {
+   "id": "dead-probe",
+   "quote": "If the baseline already passes, the probe is dead; replace it.",
+   "kind": "tool",
+   "by": [
+    "evals/test_gate.py"
+   ]
+  },
+  {
+   "id": "agent-keeps-rows",
+   "quote": "Do not change a row to match the output.",
+   "kind": "gap",
+   "why": "Agent behaviour; no outcome task yet."
+  }
+ ]
+}

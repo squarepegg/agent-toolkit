@@ -1,0 +1,52 @@
+{
+ "skill": "adversarial-sdlc",
+ "claims": [
+  {
+   "id": "gate-only-verdict",
+   "quote": "The gate is the only verdict.",
+   "kind": "gap",
+   "why": "About what the orchestrating agent claims; no outcome task.",
+   "rule": 1
+  },
+  {
+   "id": "human-decisions",
+   "quote": "Stop at human decisions.",
+   "kind": "tool",
+   "by": [
+    "skills/adversarial-sdlc/tests/adopt_run_test.py"
+   ],
+   "rule": 2
+  },
+  {
+   "id": "repro-or-nothing",
+   "quote": "No repro, no finding.",
+   "kind": "tool",
+   "by": [
+    "skills/adversarial-sdlc/tests/consolidate_unit_test.py",
+    "skills/adversarial-sdlc/tests/validation_unit_test.py"
+   ],
+   "rule": 3
+  },
+  {
+   "id": "done-means",
+   "quote": "Done means that REPORT.md says DONE",
+   "kind": "policy",
+   "why": "A definition.",
+   "rule": 4
+  },
+  {
+   "id": "residual-risk",
+   "quote": "State residual risk.",
+   "kind": "policy",
+   "why": "A reporting requirement.",
+   "rule": 5
+  },
+  {
+   "id": "no-role-play",
+   "quote": "Do not play a role yourself.",
+   "kind": "gap",
+   "why": "Agent behaviour; no outcome task.",
+   "rule": 6
+  }
+ ]
+}

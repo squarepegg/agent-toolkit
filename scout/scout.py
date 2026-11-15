@@ -229,7 +229,7 @@ PAPERS = ("arxiv", "s2")
 
 def digest(ranked, top, since, errors, snap=""):
     lines = [f"Scout digest (repos/posts since {since}; papers per source window). Not adopted: to test one, add "
-             "`evals/candidates/<id>.json` (copy `_template.json`), commit it, open a PR and label it `eval`."]
+             "`evals/candidates/<id>.json` (copy `_template.json`), commit it, run `evals/run_candidate.py` on a laptop, commit the result and open a PR."]
     for name, rows in (("Repos and posts", [i for i in ranked if i["source"] not in PAPERS]),
                        ("Papers", [i for i in ranked if i["source"] in PAPERS])):
         lines += ["", f"### {name}", "", "| score | source | item | signal | matched |", "|---|---|---|---|---|"]

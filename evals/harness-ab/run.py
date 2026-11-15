@@ -57,7 +57,7 @@ def build_arms():
 
 def session(cwd, skill_dir, first, user, turn_timeout):
     extra = json.loads(os.environ.get("EVAL_PI_ARGS", "[]"))
-    cmd = ["pi", "--mode", "rpc", "--no-session", "--no-context-files", "--no-skills", "--no-extensions", "--skill", skill_dir, *extra]
+    cmd = [os.environ.get("EVAL_PI", "pi"), "--mode", "rpc", "--no-session", "--no-context-files", "--no-skills", "--no-extensions", *(["--skill", skill_dir] if skill_dir else []), *extra]
     env = {**os.environ, "TMPDIR": os.path.join(cwd, "..", "tmp")}
     os.makedirs(env["TMPDIR"], exist_ok=True)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, cwd=cwd, env=env)

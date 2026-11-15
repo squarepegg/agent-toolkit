@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run one registered candidate: check it is committed, fetch an outside skill at its pinned sha if any, then run
-scripts/skill_ab.py (both arms) into results/<id>.json. Costs model tokens. Then: python3 evals/gate.py <candidate> <results>.
+scripts/skill_ab.py (both arms) into evals/candidates/results/<id>.json (commit it: CI gates it). Costs model tokens. Then: python3 evals/gate.py <candidate> <results>.
 
   EVAL_PI_ARGS='["--model","provider/id"]' python3 evals/run_candidate.py evals/candidates/<id>.json [--out FILE]
 """
@@ -28,7 +28,8 @@ def main(argv):
     except (gate.BadInput, ValueError, OSError) as e:
         print(f"run_candidate: {e}", file=sys.stderr)
         return 2
-    out = out or os.path.join(ROOT, "results", f"{c['id']}.json")
+    out = out or os.path.join(ROOT, "evals", "candidates", "results", f"{c['id']}.json")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     cmd = [sys.executable, os.path.join(ROOT, "scripts", "skill_ab.py"), c["skill"], "--samples", str(c.get("samples", 3)), "--out", out]
     with tempfile.TemporaryDirectory() as tmp:
         if c.get("fetch"):

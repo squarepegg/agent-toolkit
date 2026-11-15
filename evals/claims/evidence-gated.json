@@ -1,0 +1,61 @@
+{
+ "skill": "evidence-gated",
+ "claims": [
+  {
+   "id": "registered",
+   "quote": "eval.py refuses an uncommitted or modified file.",
+   "kind": "tool",
+   "by": [
+    "skills/evidence-gated/tests/eval-test.sh"
+   ]
+  },
+  {
+   "id": "mutant-caught",
+   "quote": "TLC must violate exactly that invariant on it.",
+   "kind": "tool",
+   "by": [
+    "skills/evidence-gated/tests/eval-test.sh"
+   ]
+  },
+  {
+   "id": "computed-check",
+   "quote": "Every criterion needs a computed check",
+   "kind": "tool",
+   "by": [
+    "skills/evidence-gated/tests/eval-test.sh"
+   ]
+  },
+  {
+   "id": "irreversible",
+   "quote": "can't be DECISIVE without attack_report and blind_check",
+   "kind": "tool",
+   "by": [
+    "skills/evidence-gated/tests/eval-test.sh"
+   ]
+  },
+  {
+   "id": "planted-bugs",
+   "quote": "planted-bug check (95 bugs, each must fail its intended test; ~35 min, PAR=6)",
+   "kind": "gap",
+   "why": "tests/planted-bugs.sh is not run by any workflow (about 35 minutes)."
+  },
+  {
+   "id": "criteria-first",
+   "quote": "Criteria before options.",
+   "kind": "gap",
+   "why": "Agent behaviour; no outcome task yet."
+  },
+  {
+   "id": "owner",
+   "quote": "Product or legal requirements go to their owner.",
+   "kind": "policy",
+   "why": "An ownership rule."
+  },
+  {
+   "id": "ordering-not-honesty",
+   "quote": "It proves ordering (the criteria existed in HEAD before the run), not honesty",
+   "kind": "policy",
+   "why": "A stated limit."
+  }
+ ]
+}

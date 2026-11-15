@@ -1,0 +1,47 @@
+{
+ "skill": "doubt",
+ "claims": [
+  {
+   "id": "stdin-not-argv",
+   "quote": "Never interpolate the artifact into a shell-quoted argument.",
+   "kind": "witness",
+   "by": [
+    "doubt-artifact-via-stdin"
+   ]
+  },
+  {
+   "id": "agent-finds-flaw",
+   "quote": "A confident answer is not a correct one.",
+   "kind": "model",
+   "by": [
+    "doubt"
+   ]
+  },
+  {
+   "id": "no-external-cli",
+   "quote": "Never invoke an external CLI without explicit user authorization",
+   "kind": "model",
+   "by": [
+    "doubt"
+   ]
+  },
+  {
+   "id": "no-claim",
+   "quote": "Pass ARTIFACT + CONTRACT only. Do NOT pass the CLAIM.",
+   "kind": "gap",
+   "why": "Needs an A/B of reviewer prompts with vs without the CLAIM; not built."
+  },
+  {
+   "id": "cross-model",
+   "quote": "A single-model reviewer shares blind spots with the original author",
+   "kind": "gap",
+   "why": "Needs a cross-model A/B; not built."
+  },
+  {
+   "id": "three-cycles",
+   "quote": "3 cycles completed (escalate to user, don't grind a fourth alone)",
+   "kind": "policy",
+   "why": "A bound chosen for cost; the doubt task grades bounded_at_3_cycles as a secondary check."
+  }
+ ]
+}
