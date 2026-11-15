@@ -25,7 +25,8 @@ class Pending:
         self.bank, self.src, self.new_src, self.dst, self.new_dst = bank, src, new_src, dst, new_dst
 
     def commit(self):
-        """Apply the transfer. Returns True."""
+        """Apply the transfer once: committing the same transfer again changes nothing. Returns True if the transfer
+        is applied, False if it can no longer be applied (for example the funds are no longer there)."""
         self.bank.balances[self.src] = self.new_src
         self.bank.balances[self.dst] = self.new_dst
         return True
@@ -48,23 +49,22 @@ class Bank:
 BANK_FIXED = BANK.replace(
     '''    def __init__(self, bank, src, new_src, dst, new_dst):
         self.bank, self.src, self.new_src, self.dst, self.new_dst = bank, src, new_src, dst, new_dst
-
-    def commit(self):
-        """Apply the transfer. Returns True."""
-        self.bank.balances[self.src] = self.new_src
-        self.bank.balances[self.dst] = self.new_dst
-        return True''',
+''',
     '''    def __init__(self, bank, src, new_src, dst, new_dst):
         self.bank, self.src, self.dst = bank, src, dst
-        self.amount = bank.balances[src] - new_src
-
-    def commit(self):
-        """Apply the transfer. Returns True (False if funds are no longer there; nothing changes then)."""
+        self.amount, self.done = bank.balances[src] - new_src, False
+''').replace(
+    '''        self.bank.balances[self.src] = self.new_src
+        self.bank.balances[self.dst] = self.new_dst
+        return True''',
+    '''        if self.done:
+            return True
         b = self.bank.balances
         if b[self.src] < self.amount:
             return False
         b[self.src] -= self.amount
         b[self.dst] += self.amount
+        self.done = True
         return True''')
 assert BANK_FIXED != BANK
 
