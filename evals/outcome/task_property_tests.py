@@ -25,7 +25,7 @@ from tasks import init_repo, unittest_outcomes  # noqa: E402
 
 MUT_NAMES = ["empty_single", "trailing_empty", "strip", "comma_and_quote", "quote_only_comma", "empty_middle", "lookup"]
 # Pre-registered (changing any of this changes the task hash and stales old ledger rows)
-PREREG = {"n": 5, "alpha": 0.05, "ceiling": 0.8,
+PREREG = {"n": 10, "alpha": 0.05, "ceiling": 0.8,
           "primary": ["passes_real", *[f"kills_{m}" for m in MUT_NAMES], "src_unchanged"]}
 
 REAL = '''"""One CSV row: format a list of fields into a line, and parse a line back. No newlines inside a row."""
