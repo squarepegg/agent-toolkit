@@ -3,11 +3,14 @@
 The agent is asked whether four example tests for a CSV row formatter/parser are good enough, and to improve them.
 Grading reruns the agent's tests against the real code and against seven plausible wrong implementations (mutants),
 each a one-line change that the four original examples cannot see. Each is only reached by an input a generator aimed
-at edge cases produces (a single empty field, a trailing empty field, whitespace, a field with both a comma and a quote,
-more than 32 fields) or by checking the examples are not the whole behaviour (the lookup). No model grades anything.
+at edge cases produces (a single empty field, a trailing empty field, empty fields in the middle, whitespace, a field
+with both a comma and a quote) or by checking the examples are not the whole behaviour (the lookup). No model grades anything.
 
-History: the first version of this task (merge_intervals) hit CEILING (5/5 in every arm, sonnet-5-5 medium): replaced
-by this one before any skill-arm result informed the new design (see evals/negative-results.md).
+The prompt names the skill on every arm (so the skill arm loads it; the none arm cannot), as the dst task does.
+
+History: v1 (merge_intervals) hit CEILING (5/5 in every arm). v2 (an arbitrary 32-field truncation mutant, prompt without
+the skill's name) hit FLOOR (0/5 in every arm; nobody tested rows that long, and the skill was read in 1 of 5 runs). v3
+is this file. See evals/negative-results.md.
 """
 import os
 import re
@@ -19,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "harness-ab"))
 from tasks import init_repo, unittest_outcomes  # noqa: E402
 
-MUT_NAMES = ["empty_single", "trailing_empty", "strip", "comma_and_quote", "quote_only_comma", "long_rows", "lookup"]
+MUT_NAMES = ["empty_single", "trailing_empty", "strip", "comma_and_quote", "quote_only_comma", "empty_middle", "lookup"]
 # Pre-registered (changing any of this changes the task hash and stales old ledger rows)
 PREREG = {"n": 5, "alpha": 0.05, "ceiling": 0.8,
           "primary": ["passes_real", *[f"kills_{m}" for m in MUT_NAMES], "src_unchanged"]}
@@ -91,8 +94,8 @@ MUTANTS = {
     "comma_and_quote": _sub("out.append('\"' + f.replace('\"', '\"\"') + '\"')", "out.append('\"' + (f if \",\" in f else f.replace('\"', '\"\"')) + '\"')"),
     # fields with a quote but no comma are not quoted
     "quote_only_comma": _sub('if "," in f or \'"\' in f:', 'if "," in f:'),
-    # rows are cut at 32 fields (a fixed buffer)
-    "long_rows": _sub("    out = []\n    for f in fields:", "    out = []\n    for f in fields[:32]:"),
+    # empty fields before the last are lost: "a,,b" -> ["a", "b"], ",a" -> ["a"]
+    "empty_middle": _sub('        elif c == ",":\n            fields.append("".join(cur))\n            cur = []', '        elif c == ",":\n            if cur:\n                fields.append("".join(cur))\n            cur = []'),
     # the dumbest implementation that passes the four examples: a lookup of them, naive join/split otherwise
     "lookup": '"""lookup of the examples"""\n\n\n' + KNOWN_FMT + "\n\n" + KNOWN_PARSE,
 }
@@ -120,7 +123,8 @@ if __name__ == "__main__":
     unittest.main()
 '''
 
-PROMPT = ("Are the tests in tests/test_csvline.py good enough? Improve them. This is a test-only task: do not change "
+PROMPT = ("Use the property-tests-from-examples skill. Are the tests in tests/test_csvline.py good enough? Improve them. "
+          "This is a test-only task: do not change "
           "csvline.py. No third-party packages are installed; tests run with "
           "`python3 -m unittest discover -s tests -t .`. Tell me what you found.")
 
