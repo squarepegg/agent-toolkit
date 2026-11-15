@@ -21,6 +21,18 @@ def observations(task,scores):
 
 
 class Study(unittest.TestCase):
+    def test_structured_capture_notices_failing_subtests_and_remains_green_on_fixed_case(self):
+        for fail in (True,False):
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);(root/"tests").mkdir();(root/"tests/__init__.py").write_text("")
+                (root/"tests/test_sub.py").write_text('import unittest\nclass T(unittest.TestCase):\n'
+                    ' def test_generated(self):\n  for n in range(4):\n   with self.subTest(n=n):\n'
+                    f'    self.assertEqual(n,{"n+1" if fail else "n"})\n')
+                out=S.CAPTURE.outcomes(root)
+                self.assertNotIn("__crash__",out)
+                self.assertEqual(S.clean_outcomes(out),not fail,out)
+                if fail:self.assertIn("FAIL",out.values())
+
     def test_actual_skill_and_control_are_equal_length_and_none_has_no_body(self):
         for task in S.PLAN["tasks"]:
             real=S.arm_text(task,"skill");control=S.arm_text(task,"control")

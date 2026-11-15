@@ -17,11 +17,14 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parent.parent
 sys.path.insert(0,str(HERE.parent/"outcome"))
 import registry as R
 import verdict as V
+_capture_spec=importlib.util.spec_from_file_location("skill_value_unittest_capture",HERE/"unittest_capture.py")
+CAPTURE=importlib.util.module_from_spec(_capture_spec);_capture_spec.loader.exec_module(CAPTURE)
 PLAN=json.loads((HERE/"plan.json").read_text())
 REG=HERE/"registration.json";LEDGER=HERE/"ledger.jsonl";FULL=ROOT/"results/native-skill-value";MANIFEST=FULL/"manifest.json"
 
@@ -103,14 +106,21 @@ def clean_outcomes(out):
 
 
 def grade_artifact(task,root,text):
-    t=R.TASKS[task];checks,detail=t["grade"](str(root),text,text,[])
+    t=R.TASKS[task]
+    module=sys.modules["task_property_tests" if task=="property-tests" else "task_correctness_first"]
+    with patch.object(module,"unittest_outcomes",CAPTURE.outcomes):
+        return _grade_captured(task,root,text,t,module)
+
+
+def _grade_captured(task,root,text,t,module):
+    checks,detail=t["grade"](str(root),text,text,[])
     if task=="property-tests":
-        module=sys.modules["task_property_tests"];again=module._outcomes_with(str(root),module.REAL)
+        again=module._outcomes_with(str(root),module.REAL)
         for name in module.MUT_NAMES:
             if any(k.startswith("__") for k in detail[name]):checks["kills_"+name]=False
         first=detail["real"]
     else:
-        module=sys.modules["task_correctness_first"];again=module._with(str(root),module.REAL)
+        again=module._with(str(root),module.REAL)
         # The existing grader rejects crash/timeout kills. Re-run real code separately for replay.
         first=module._with(str(root),module.REAL)
     checks["real_replays"]=first==again and clean_outcomes(again)

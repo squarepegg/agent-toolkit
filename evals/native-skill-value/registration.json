@@ -1,6 +1,7 @@
 {
   "plan": {
     "question": "Do the current skill bodies improve actual test quality over no supplied skill body and a generic control?",
+    "amendment": "V2 measurement correction after five task artifacts and two invalid V1 scores: the legacy regex parser ignored subTest failures. Preserve V1 registration/scores/source commit in native-skill-value-history; capture structured unittest events with a regression witness, then regrade ALL retained artifacts under V2. No task, skill, mutant, score target or threshold changed. This is an amended exploratory study, not an untouched preregistration; no positive validation claim from the corrected pilot alone.",
     "tasks": [
       "property-tests",
       "correctness-first"
@@ -57,9 +58,10 @@
     "evals/harness-ab/run.py": "461af9c9ba4e42cc6e7b2f109419c7f455ad1cd1531725d26282e6633396b819",
     "evals/harness-ab/tasks.py": "500dd360784f33904d8e449b2ed91eea2e8bcf2e2870ae68e92f3672b33d93c8",
     "evals/harness-ab/test_harness_ab.py": "00a4dad9a2a41d0f3e818c828c5369d1dbd4bfceb4b15e77c43955cff49f0152",
-    "evals/native-skill-value/plan.json": "ec1dead8848b9bef3496781cf0012273bb5b8f42b799510c6b1929f53c06cc0c",
-    "evals/native-skill-value/study.py": "689dbc9bb3473eea5e15ea1081e8a0c93d2831047aaa28e4801f3c568403b082",
-    "evals/native-skill-value/test_study.py": "0792c08cc1593b2d0e00850036bf1e42676493416b5a4836a399a672c983c90b",
+    "evals/native-skill-value/plan.json": "568ae574326be37c3998ce5639210c168b941f4625823730db13123e4411ffa5",
+    "evals/native-skill-value/study.py": "bd72fd0ad8ec1bd0204871990624559535d9c7ec514b11a98fc91256527e75e5",
+    "evals/native-skill-value/test_study.py": "ea139b7e50911e267f521cd1ff3d85c0e6477e15860627ce22d796d6975b3b48",
+    "evals/native-skill-value/unittest_capture.py": "44e349b1faf542a7c340678ec4bf80c6c8428a68429cd1b57f4af50519544ff5",
     "evals/outcome/control.md": "e86bc80fb4a61bfb04046cded5b00e23c8a6ae65dcd3504942784f33e12446ae",
     "evals/outcome/fake_agent.py": "ef062ef100de9e84f6ad793ef2152c6677cfa140cd58648d950ec27653f27c83",
     "evals/outcome/registry.py": "118641d6bd81d46be17cd341e99230776018aa1d0e79dadbec460cef874ed29e",

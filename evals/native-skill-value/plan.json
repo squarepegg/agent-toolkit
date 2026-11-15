@@ -1,5 +1,6 @@
 {
   "question": "Do the current skill bodies improve actual test quality over no supplied skill body and a generic control?",
+  "amendment": "V2 measurement correction after five task artifacts and two invalid V1 scores: the legacy regex parser ignored subTest failures. Preserve V1 registration/scores/source commit in native-skill-value-history; capture structured unittest events with a regression witness, then regrade ALL retained artifacts under V2. No task, skill, mutant, score target or threshold changed. This is an amended exploratory study, not an untouched preregistration; no positive validation claim from the corrected pilot alone.",
   "tasks": ["property-tests", "correctness-first"],
   "selection": "First batch: two existing outcome tasks with positive and negative grader fixtures. Other skills are ungraded by this study. Tasks were previously used on Claude; those observations are not pooled here.",
   "models": ["gpt-6.1-sol", "gpt-6.1-terra"],
