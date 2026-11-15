@@ -123,7 +123,7 @@ def _rows(task_id, passes, model='["--model","p/m"]', hashes=None):
 
 
 class Verdicts(unittest.TestCase):
-    T = "property-tests"
+    T = "correctness-first"   # n = 5: the cases below are written for 5 runs per arm
 
     def v(self, **passes):
         return V.verdict(self.T, _rows(self.T, passes))["verdict"]
@@ -221,7 +221,8 @@ class EndToEndWithFakeAgent(unittest.TestCase):
                     RUN.one(tid, arm, i, d, '["--model","fake/agent"]', "head", h)
             self.assertEqual(V.validate_ledger(), [])
             v = V.verdict(tid)
-            self.assertEqual((v["verdict"], v["score"]["skill"], v["score"]["none"]), ("WORTHWHILE", (5, 5), (0, 5)))
+            n = R.TASKS[tid]["prereg"]["n"]
+            self.assertEqual((v["verdict"], v["score"]["skill"], v["score"]["none"]), ("WORTHWHILE", (n, n), (0, n)))
             control = open(os.path.join(RUN.ARMS_DIR, f"{R.TASKS[tid]['skill']}-control", "SKILL.md")).read()
             real = open(os.path.join(V.ROOT, "skills", R.TASKS[tid]["skill"], "SKILL.md")).read()
             self.assertLessEqual(abs(len(control) - len(real)), 2)
