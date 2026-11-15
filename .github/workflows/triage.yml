@@ -1,0 +1,67 @@
+name: triage
+# After the weekly scout (or by hand): a model nominates each new candidate A_use / B_adopt_ideas / C_discard (scout/triage.py), the result is
+# recorded in evals/triage/<date>.jsonl and opened as one PR (an A also drafts evals/candidates/_draft-<id>.json). The model never adopts: only
+# evals/gate.py (eval.yml) can, after a human completes and commits the candidate file.
+# Needs: repo variable EVAL_MODEL, secret ANTHROPIC_API_KEY, and Settings > Actions > "Allow GitHub Actions to create pull requests". Without
+# the model settings it skips. No pull_request trigger on purpose: this job holds a model key and a write token and reads untrusted web text.
+on:
+  workflow_run:
+    workflows: [scout]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      max: { description: "max items to triage", default: "10" }
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+concurrency: { group: triage, cancel-in-progress: false }
+jobs:
+  triage:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EVAL_MODEL: ${{ vars.EVAL_MODEL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      S2_API_KEY: ${{ secrets.S2_API_KEY }}
+      MAX_ITEMS: ${{ inputs.max || '10' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.repository.default_branch }}" }
+      - name: Model configured?
+        id: cfg
+        run: |
+          if [ -z "$EVAL_MODEL" ] || [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::set repo variable EVAL_MODEL and secret ANTHROPIC_API_KEY to enable triage"; echo "go=no" >> "$GITHUB_OUTPUT"
+          else echo "go=yes" >> "$GITHUB_OUTPUT"; fi
+      - uses: astral-sh/setup-uv@v6
+        if: steps.cfg.outputs.go == 'yes'
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.go == 'yes'
+        with: { node-version: "22" }
+      - if: steps.cfg.outputs.go == 'yes'
+        run: npm i -g --no-audit --no-fund @earendil-works/pi-coding-agent@1.5.2
+      - name: Candidates from the scout run
+        if: steps.cfg.outputs.go == 'yes' && github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: scout-items
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Candidates by hand (run scout now)
+        if: steps.cfg.outputs.go == 'yes' && github.event_name == 'workflow_dispatch'
+        run: |
+          gh issue list --label scout --state all --limit 200 --json body --jq '.[].body' > seen.md
+          uv run --no-project --python 3.13 scout/scout.py --days 7 --top 15 --seen seen.md --out digest.md --json items.json
+      - name: Triage
+        if: steps.cfg.outputs.go == 'yes'
+        env: { EVAL_PI_ARGS: '["--model", "${{ vars.EVAL_MODEL }}"]' }
+        run: uv run --no-project --python 3.13 scout/triage.py --items items.json --max "$MAX_ITEMS" --max-cost 1.0 --report triage.md
+      - name: Record via PR
+        if: steps.cfg.outputs.go == 'yes'
+        run: |
+          cat triage.md >> "$GITHUB_STEP_SUMMARY"
+          BASE="${{ github.event.repository.default_branch }}" scripts/triage_pr.sh "$(date -u +%F)" triage.md
