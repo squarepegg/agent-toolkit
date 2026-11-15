@@ -1,0 +1,15 @@
+{
+  "legacy_outcomes": {
+    "tests.test_witness.T.test_z_pass.test_z_pass": "ok"
+  },
+  "legacy_incorrectly_green": true,
+  "structured_outcomes": {
+    "tests.test_witness.T.test_a_sub": "FAIL"
+  },
+  "structured_green": false,
+  "unchanged_request_and_arm_construction": {
+    "setup": true,
+    "arm_text": true
+  },
+  "task_skill_and_grader_source_hashes_unchanged": true
+}

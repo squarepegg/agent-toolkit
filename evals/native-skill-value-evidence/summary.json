@@ -1,0 +1,136 @@
+{
+  "experiment": "b7a48fcc3d6754dfb55dd7630818586e20972faa30ca8c55e73ca3604451f369",
+  "n_trials": 42,
+  "cells": [
+    {
+      "task": "property-tests",
+      "model": "gpt-6.1-sol",
+      "scores": {
+        "none": [
+          7,
+          7
+        ],
+        "skill": [
+          7,
+          7
+        ],
+        "control": [
+          7,
+          7
+        ]
+      },
+      "max_score": 7,
+      "verdict": "CEILING",
+      "means": {
+        "none": 7.0,
+        "skill": 7.0,
+        "control": 7.0
+      }
+    },
+    {
+      "task": "property-tests",
+      "model": "gpt-6.1-terra",
+      "scores": {
+        "none": [
+          7,
+          6,
+          7,
+          7,
+          7
+        ],
+        "skill": [
+          7,
+          7,
+          7,
+          7,
+          7
+        ],
+        "control": [
+          7,
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      "max_score": 7,
+      "verdict": "INCONCLUSIVE",
+      "means": {
+        "none": 6.8,
+        "skill": 7.0,
+        "control": 7.0
+      },
+      "p_values": {
+        "none": 0.5,
+        "control": 1.0
+      }
+    },
+    {
+      "task": "correctness-first",
+      "model": "gpt-6.1-sol",
+      "scores": {
+        "none": [
+          6,
+          6
+        ],
+        "skill": [
+          6,
+          6
+        ],
+        "control": [
+          6,
+          6
+        ]
+      },
+      "max_score": 6,
+      "verdict": "CEILING",
+      "means": {
+        "none": 6.0,
+        "skill": 6.0,
+        "control": 6.0
+      }
+    },
+    {
+      "task": "correctness-first",
+      "model": "gpt-6.1-terra",
+      "scores": {
+        "none": [
+          5,
+          5,
+          6,
+          5,
+          4
+        ],
+        "skill": [
+          6,
+          5,
+          5,
+          5,
+          6
+        ],
+        "control": [
+          0,
+          5,
+          6,
+          4,
+          6
+        ]
+      },
+      "max_score": 6,
+      "verdict": "INCONCLUSIVE",
+      "means": {
+        "none": 5.0,
+        "skill": 5.4,
+        "control": 4.2
+      },
+      "p_values": {
+        "none": 0.32142857142857145,
+        "control": 0.27380952380952384
+      }
+    }
+  ],
+  "reference_failures": 1,
+  "final_source_changes": 0,
+  "exposure_unverified": 0,
+  "artifact_scan_flags": []
+}
