@@ -1,0 +1,75 @@
+{
+  "plan": {
+    "question": "Do the current skill bodies improve actual test quality over no supplied skill body and a generic control?",
+    "tasks": [
+      "property-tests",
+      "correctness-first"
+    ],
+    "selection": "First batch: two existing outcome tasks with positive and negative grader fixtures. Other skills are ungraded by this study. Tasks were previously used on Claude; those observations are not pooled here.",
+    "models": [
+      "gpt-6.1-sol",
+      "gpt-6.1-terra"
+    ],
+    "reasoning_effort": "medium",
+    "arms": [
+      "none",
+      "skill",
+      "control"
+    ],
+    "pilot_n": 2,
+    "full_n": 5,
+    "early_stop": "After all arms have two pilot runs in a task/model cell, stop CEILING if BOTH no-skill runs pass the real implementation, preserve source and kill EVERY mutant. Otherwise complete five runs in all three arms. No task/prompt/grader tuning after observations.",
+    "alpha": 0.0125,
+    "alpha_reason": "0.05 / four task-model hypotheses; a skill must beat BOTH comparators",
+    "min_gain_mutants": 1,
+    "primary": "Number of faulty versions caught, gated to zero if tests fail on the correct implementation or production source changes. Crashes/timeouts do not count as kills.",
+    "test_faults": {
+      "property-tests": 7,
+      "correctness-first": 6
+    },
+    "statistics": "Existing exact one-sided permutation test on mutation scores, per task and per model. No pooling across tasks/models. WORTHWHILE requires mean gain >= 1 mutant vs each comparator and p <= alpha against each, with no lower real-code pass count or source-preservation count.",
+    "negative_controls": "Reference solution must pass the real implementation and kill every mutant; naive solution must pass the real implementation and miss at least one mutant; untouched tests must miss at least one mutant.",
+    "replay": "Generated tests are replayed twice on the real implementation; disagreement or failure blocks a positive verdict. Hidden mutant evaluation is performed outside the agent workspace.",
+    "session_budget_seconds": 300,
+    "metrics": [
+      "mutants killed",
+      "real-code false alarms",
+      "source changes",
+      "test replay",
+      "changed test bytes",
+      "observed completion time"
+    ],
+    "unavailable_metrics": [
+      "native attributable model tokens",
+      "native dollar cost",
+      "independently exported native tool-read telemetry"
+    ],
+    "review_gate": "Before any positive conclusion, inspect test artifacts for behavioral assertions rather than source-code tripwires, environment detection or weakened contracts. No positive conclusion if this audit fails.",
+    "transport": "Native fresh agents (fork_turns=none), opaque trial paths, no parent/grader/outcome context. Explicitly prohibit all ambient skill files and personal/company brains; skill/control may read only their provided copy. Native platform skill descriptions remain visible, so this is a skill-BODY comparison conditional on a shared platform catalog, not a hermetic removal of every skill reference.",
+    "exposure": "Agent records skill files read; this is self-reported exposure, not independently verified telemetry. A reported ambient skill read invalidates the cell for causal conclusions. Missing exposure report blocks positive conclusions.",
+    "falsifier": "Baseline saturates the task, control explains the gain, a source/false-alarm regression appears, or exposure is contaminated. A null result does not establish uselessness on other work. No skill deletion or rewriting based on this first batch."
+  },
+  "inputs": {
+    "evals/harness-ab/README.md": "b7146de77f04aebed2d43da57a6f99f5000c4dcac000530bcb5d600fbe62c682",
+    "evals/harness-ab/dst_lint.py": "5799d00eb6b7930e7ce800eb10739aa28a73b5313ea998bf884cf857034493fe",
+    "evals/harness-ab/regrade.py": "aa17b8612b0d1a20915ad3566ceb06372030bd70b3021305a51a91e5417d3576",
+    "evals/harness-ab/report.py": "b3322e69f335da0ba3ff9f311cd2706cdbf09e49ae4205816d3f7347e5cc096a",
+    "evals/harness-ab/run.py": "461af9c9ba4e42cc6e7b2f109419c7f455ad1cd1531725d26282e6633396b819",
+    "evals/harness-ab/tasks.py": "500dd360784f33904d8e449b2ed91eea2e8bcf2e2870ae68e92f3672b33d93c8",
+    "evals/harness-ab/test_harness_ab.py": "00a4dad9a2a41d0f3e818c828c5369d1dbd4bfceb4b15e77c43955cff49f0152",
+    "evals/native-skill-value/plan.json": "ec1dead8848b9bef3496781cf0012273bb5b8f42b799510c6b1929f53c06cc0c",
+    "evals/native-skill-value/study.py": "689dbc9bb3473eea5e15ea1081e8a0c93d2831047aaa28e4801f3c568403b082",
+    "evals/native-skill-value/test_study.py": "0792c08cc1593b2d0e00850036bf1e42676493416b5a4836a399a672c983c90b",
+    "evals/outcome/control.md": "e86bc80fb4a61bfb04046cded5b00e23c8a6ae65dcd3504942784f33e12446ae",
+    "evals/outcome/fake_agent.py": "ef062ef100de9e84f6ad793ef2152c6677cfa140cd58648d950ec27653f27c83",
+    "evals/outcome/registry.py": "118641d6bd81d46be17cd341e99230776018aa1d0e79dadbec460cef874ed29e",
+    "evals/outcome/run.py": "2bfd0bc97db24796af7a8d9c038169a748dc7add22fd38cb956b2322366a7892",
+    "evals/outcome/task_correctness_first.py": "bc6cf4ced527289235b1ca192b85ad1cd7caa73ae49107d202bdacb3f0bca2ba",
+    "evals/outcome/task_dst_doubt.py": "605873f80bf10709e07405065246261b0e6b4c169e163e77f8e670f2c98b7a48",
+    "evals/outcome/task_property_tests.py": "eb8d6fb54f1bfbda488e19f3b38a6bbd9d7fdb88ace007f09e154e1e9da0e097",
+    "evals/outcome/test_outcome.py": "b104542fa98a61972f70fa8eb466dce29e947d4880ef9bd4a68dd0d18daa7f98",
+    "evals/outcome/verdict.py": "cb80cf9c4e4dcf124176b9a60f2513691ddc789fb8407efd179e98e42804d7e5",
+    "skills/correctness-first/SKILL.md": "c0d85bc17b873d1264f43e70830101a71fe135ad5e577c462adc6aa3fc5b5059",
+    "skills/property-tests/SKILL.md": "4111d6c7ee5596de6aa24feba89fedb201908498d7606b30c2a8c520f59f5721"
+  }
+}
