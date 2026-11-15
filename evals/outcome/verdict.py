@@ -12,6 +12,7 @@ Verdicts per task (pre-registered `prereg` in the task file: n, alpha, ceiling, 
   NOT_RUN       no current rows
   INCOMPLETE    some arm has fewer than n current rows
   CEILING       the no-skill arm already passes >= ceiling: the task cannot show value; write a harder task
+  FLOOR         no arm passes a single run: the task (or its strict all-checks rule) cannot show value; recalibrate it
   WORTHWHILE    skill beats BOTH no-skill and control: one-sided Fisher exact p <= alpha against each
   NOT_WORTH     skill pass rate <= no-skill pass rate
   INCONCLUSIVE  anything else (a gain, but not significant at this n, or the control arm does as well)
@@ -114,7 +115,9 @@ def verdict(task_id, rows=None):
     (s, ns), (b, nb), (c, nc) = score["skill"], score["none"], score["control"]
     out["p_vs_none"] = round(fisher_greater(s, ns, b, nb), 4)
     out["p_vs_control"] = round(fisher_greater(s, ns, c, nc), 4)
-    if b / nb >= pre["ceiling"]:
+    if s == 0 and b == 0 and c == 0:
+        out["verdict"] = "FLOOR"
+    elif b / nb >= pre["ceiling"]:
         out["verdict"] = "CEILING"
     elif out["p_vs_none"] <= pre["alpha"] and out["p_vs_control"] <= pre["alpha"]:
         out["verdict"] = "WORTHWHILE"

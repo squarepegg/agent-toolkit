@@ -64,6 +64,7 @@ Verdict (`verdict.py`, recomputed in CI from the committed rows):
 |---|---|
 | `WORTHWHILE` | skill beats both none and control, one-sided Fisher exact p ≤ alpha against each |
 | `CEILING` | none already passes ≥ ceiling: the task can't show value, so write a harder one |
+| `FLOOR` | no arm passes a single run: the task can't show value, so recalibrate it |
 | `NOT_WORTH` | skill ≤ none |
 | `INCONCLUSIVE` | anything else |
 

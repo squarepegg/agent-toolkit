@@ -1,0 +1,28 @@
+{
+  "source": "https://github.com/janestreet/agent_skills/blob/master/socratic-tutor/SKILL.md",
+  "status": "prospective synthetic experiments; not evidence of an existing production failure",
+  "requirements": {
+    "product": ["Preserve the existing skill in every arm", "No unwanted workflow activation", "Stop for unanswered owner decisions", "Resume without inventing successful verification", "Find stale facts within the verification budget"],
+    "ops": ["Fresh isolated Pi sessions", "Pin model and all experimental inputs", "No CI model calls", "No adoption without measured improvement"]
+  },
+  "arms": ["baseline", "candidate", "control"],
+  "candidates": ["activation", "stopping", "recovery", "revalidation"],
+  "repeats": 5,
+  "alpha": 0.0125,
+  "alpha_reason": "0.05 / 4 candidate hypotheses; candidate must beat both comparators",
+  "ceiling": 0.8,
+  "max_cost_usd": 30,
+  "max_cost_ratio": 1.5,
+  "turn_timeout_seconds": 180,
+  "max_tool_messages_per_turn": 40,
+  "primary": "Every development and held-out case passes in a repetition",
+  "heldout": "Candidate case pass count must be at least each comparator's held-out count",
+  "cost": "Candidate mean reported dollar cost <= 1.5x baseline; absent provider prices means cost unverified and no adoption",
+  "falsifiers": {
+    "activation": "Exclusions suppress a legitimate spec request or do not reduce unwanted activation",
+    "stopping": "The candidate proceeds before an owner answer or adds no measured improvement",
+    "recovery": "The fresh session ships with a failed check, loses a decision, or adds no measured improvement",
+    "revalidation": "Sampling misses stale facts, flags current facts, exceeds its two-check budget, or adds no measured improvement",
+    "decision": "Current behavior is already at ceiling, held-out behavior regresses, or gains cannot be separated from the generic control"
+  }
+}

@@ -134,6 +134,7 @@ class Verdicts(unittest.TestCase):
         self.assertEqual(self.v(none=0, skill=5, control=4), "INCONCLUSIVE")     # the control does nearly as well
         self.assertEqual(self.v(none=4, skill=5, control=0), "CEILING")
         self.assertEqual(self.v(none=2, skill=2, control=0), "NOT_WORTH")
+        self.assertEqual(self.v(none=0, skill=0, control=0), "FLOOR")                # nobody passes: the task shows nothing
         self.assertEqual(self.v(none=1, skill=3, control=0), "INCONCLUSIVE")
         rows = _rows(self.T, {"none": 0, "skill": 5})
         self.assertEqual(V.verdict(self.T, rows)["verdict"], "INCOMPLETE")
@@ -144,7 +145,7 @@ class Verdicts(unittest.TestCase):
         self.assertEqual((v["verdict"], v["stale_rows"]), ("NOT_RUN", 15))
 
     def test_unfinished_run_fails(self):
-        rows = _rows(self.T, {"none": 0, "skill": 5, "control": 0})
+        rows = _rows(self.T, {"none": 2, "skill": 5, "control": 0})
         for r in rows:
             if r["arm"] == "skill":
                 r["finished"] = False

@@ -1,0 +1,19 @@
+{
+  "activation": {
+    "base": "spec-first",
+    "description": "Write a checkable spec through an interview when the user asks to spec or scope a feature with unresolved product decisions. Also verify changes against accepted specs. Do not start an interview for a one-off explanation, assessment, or fully specified small edit.",
+    "body": "Before starting phase A, distinguish a request to explain or assess something from a request to create a spec. Answer a one-off question directly. A fully specified small edit does not need an interview. Start the spec workflow for an explicit request to spec or scope a feature with unresolved product decisions. If the intent alone is ambiguous, clarify that once before launching the workflow."
+  },
+  "stopping": {
+    "base": "spec-first",
+    "body": "While interviewing, each response ends immediately after ONE question about ONE unresolved owner decision. Put any necessary context and options before that question. Then stop and wait for the user's answer. Do not answer the question yourself, add another decision, accept the spec, or start implementation while that decision is unanswered. An answer resolves only the decision it addresses."
+  },
+  "recovery": {
+    "base": "brain",
+    "body": "Before a handoff, save sufficient state for a fresh session: the current goal and constraints, completed work with exact verification commands and observed results, failed or unrun checks, unresolved owner decisions, and the next action. Do not promote a proposed action or an unrun check into a success. On resuming, read that state before acting; preserve blockers and unanswered decisions."
+  },
+  "revalidation": {
+    "base": "brain",
+    "body": "During scheduled fact upkeep, after handling lint findings, use any explicit verification budget to sample facts even when their age and anchors appear current. Select the least recently verified facts first, breaking ties by path. Compare each selected claim against its authoritative source. Record which sources were actually checked, report mismatches, and distinguish unreviewed facts from confirmed facts. Stop at the budget."
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "heads": {
+    "squarepegg/agent-toolkit": "5e4f869b2a6f4e0098be248c609cfb6ce3394e5f",
+    "squarepegg/agent-knowledge-map": "57682757a30d8d8a4d7af1449bd2dbac2cdfd1d7"
+  },
+  "files": {
+    "spec-first/.gitignore": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/.gitignore",
+      "sha256": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b"
+    },
+    "spec-first/SKILL.md": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/SKILL.md",
+      "sha256": "61eca55c6cf938effd365d31f299b3f431fd5ea5a4043a68be3de8e10a64e84f"
+    },
+    "spec-first/scripts/evidence.py": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/scripts/evidence.py",
+      "sha256": "cddb871e5ac365b54191f6e6df1e41f24fccb737b72d4d1f53b7196ec7cf1550"
+    },
+    "spec-first/scripts/review.sh": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/scripts/review.sh",
+      "sha256": "bc44e7f038379dc2859e188fdf945420f5f3c5dec4401fb20207b482f86254dd"
+    },
+    "spec-first/scripts/spec.py": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/scripts/spec.py",
+      "sha256": "552965e10cefef4087f4b4cb7575e6c44e3af070d2d91a571eb9c6ce8f5053a6"
+    },
+    "spec-first/scripts/verdict.py": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/scripts/verdict.py",
+      "sha256": "a0ac4617835ba83bd1e31e801842dd438042eac7caab5abfcd2493cb1ff5c72e"
+    },
+    "spec-first/templates/reviewer-brief.md": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/templates/reviewer-brief.md",
+      "sha256": "bcc145b27305555ac85ff77bfbb2c8a8294355b32f9929b3ac3b496fd5f4673f"
+    },
+    "spec-first/templates/spec.md": {
+      "repo": "squarepegg/agent-toolkit",
+      "path": "skills/spec-first/templates/spec.md",
+      "sha256": "b0eced0d6612f11bc854ba8471d0c392d799e68b80737fb5b01657df22291a02"
+    },
+    "brain/skills/brain/SKILL.md": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "skills/brain/SKILL.md",
+      "sha256": "113fd780e0b7d1c0e30ed3950167ffd3ab805cfaa24070cb34dc860c0aec06c3"
+    },
+    "brain/templates/STATE.md": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "templates/STATE.md",
+      "sha256": "37bd6e16873e08bbb03e8a046749a8ad516b7c26c7a89f9f37c3d86b95f212e5"
+    },
+    "brain/templates/fact.md": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "templates/fact.md",
+      "sha256": "361b3a28404d03ff03fd927f8469dfccf3ea21a1a19c73cefbf8ba465e9a9408"
+    },
+    "brain/style.md": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "style.md",
+      "sha256": "13ace7e8496fe7fa6e9391084578e86cf6141455e7e441e1715314597157d179"
+    },
+    "brain/scripts/brain.py": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "scripts/brain.py",
+      "sha256": "08fb14f20a41f3b17af6e82994bd50db9e62ccc8e4d6b6e27f4575316c8be335"
+    },
+    "brain/scripts/lint_facts.py": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "scripts/lint_facts.py",
+      "sha256": "b975c74a78d6ffabdc0c4e3f231b573783e718c869ccaa32956ab27e6886f4ad"
+    },
+    "brain/scripts/_fm.py": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "scripts/_fm.py",
+      "sha256": "b9e10dd37fa836765f3e148876aade7c35a6aea054b691ab53d733f93b4be71d"
+    },
+    "brain/scripts/tour_lint.py": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "scripts/tour_lint.py",
+      "sha256": "8f80818a4b6e19298e5e1f82381af023d929260c7c1c3db845a7cd93726c95a8"
+    },
+    "brain/LICENSE": {
+      "repo": "squarepegg/agent-knowledge-map",
+      "path": "LICENSE",
+      "sha256": "dfe52690b79f7938da03b5610ac4708fa983562ddbea3c3e83c402feb8d52b6b"
+    }
+  }
+}
