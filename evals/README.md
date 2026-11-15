@@ -50,7 +50,7 @@ reference solution passes, and a plausible weak one fails (`test_outcome.py`).
 | `dst` | build a sim that finds a race reachable only inside `store.read` | sim exists, detects the race, replays identically, `cache.py` untouched |
 | `doubt` | review a migration plan that drops a column before the deploy | flaw named, fresh reviewer spawned, no unauthorised external CLI, plan untouched |
 | `property-tests` | improve four example tests for a CSV row formatter/parser | tests pass on the real code and fail on 7 plausible wrong ones (one-line mutants the examples cannot see) |
-| `correctness-first` | add tests that would show whether `bank.py` is correct | some test fails on the lost update, all pass on the fixed bank |
+| `correctness-first` | add tests that would show whether a log-structured key-value store is correct | some test fails on the planted bug (deleted keys come back after a merge and restart, reached only by 640+ ops on cold keys), all pass on the fixed store |
 
 Arms are fresh, hermetic `pi` sessions:
 - `none`: no skill.

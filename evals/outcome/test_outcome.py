@@ -80,27 +80,32 @@ class Graders(unittest.TestCase):
                     bad.append(c)
             self.assertTrue(bad, f"mutant {name} is equivalent to the real code on {len(cases)} cases")
 
-    def test_correctness_first_fixed_bank_honours_the_documented_contract(self):
-        """the reference bank must not fail a correct test: commit is idempotent and returns True when applied"""
+    def test_correctness_first_bug_is_invisible_to_small_workloads(self):
+        """the planted bug only shows after 640+ ops with cold keys: the fixed store equals a dict model everywhere, the
+        buggy one equals it on every short workload (so a few examples cannot find it)"""
+        import random
         import task_correctness_first as C
         ns = {}
-        exec(compile(C.BANK_FIXED, "bank", "exec"), ns)
-        b = ns["Bank"]({"a": 100, "b": 0})
-        p = b.prepare("a", "b", 30)
-        self.assertTrue(p.commit())
-        self.assertTrue(p.commit())                         # again: nothing changes
-        self.assertEqual((b.balance("a"), b.balance("b")), (70, 30))
-        q1, q2 = b.prepare("a", "b", 50), b.prepare("a", "b", 50)   # two outstanding, funds for one
-        self.assertTrue(q1.commit())
-        self.assertFalse(q2.commit())                       # refused, nothing changes
-        self.assertEqual(sum(b.balance(k) for k in "ab"), 100)
-        self.assertTrue(all(b.balance(k) >= 0 for k in "ab"))
-        buggy = {}
-        exec(compile(C.BANK, "bank", "exec"), buggy)
-        bb = buggy["Bank"]({"a": 100, "b": 0, "c": 100})
-        r1, r2 = bb.prepare("a", "b", 30), bb.prepare("c", "b", 20)   # both credit b from the same snapshot
-        r1.commit(); r2.commit()
-        self.assertNotEqual(sum(bb.balance(k) for k in "abc"), 200)   # the planted bug is still a real bug: money is lost
+        exec(compile(C.STORE, "buggy", "exec"), ns)
+        fx = {}
+        exec(compile(C.STORE_FIXED, "fixed", "exec"), fx)
+
+        def run(cls, n_ops, keys, seed):
+            rng, s, model = random.Random(seed), cls(), {}
+            for i in range(n_ops):
+                op, k = rng.choice(["put", "put", "delete", "restart"]), f"k{rng.randrange(keys)}"
+                if op == "put":
+                    s.put(k, i); model[k] = i
+                elif op == "delete":
+                    s.delete(k); model.pop(k, None)
+                else:
+                    s.restart()
+            s.restart()
+            return all(s.get(f"k{j}") == model.get(f"k{j}") for j in range(keys))
+        for seed in range(30):
+            self.assertTrue(run(fx["Store"], 1500, 150, seed), "fixed store must equal the model")
+            self.assertTrue(run(ns["Store"], 600, 150, seed), "below 640 ops nothing is merged yet")
+        self.assertFalse(all(run(ns["Store"], 1500, 150, seed) for seed in range(30)), "the planted bug must be reachable")
 
     def test_prereg_is_complete(self):
         for tid, t in R.TASKS.items():

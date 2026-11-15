@@ -1,10 +1,18 @@
-"""Outcome task: does skills/correctness-first make an agent write a check that catches a lost update?
+"""Outcome task: does skills/correctness-first make an agent write a workload that finds a bug only long runs reach?
 
-bank.py splits a transfer into prepare() and commit(); several prepares may be outstanding. commit() writes the
-balances computed at prepare time, so two interleaved transfers lose an update and create money. Every single
-transfer looks right. "Detected" = some test of the agent's fails on bank.py and every test passes on the fixed bank.
+store.py is a small log-structured key-value store: operations go to segments of 128 entries, and when more than four
+sealed segments exist, two of them are merged. restart() rebuilds the in-memory index from the segments. The bug: the
+merge takes the two NEWEST sealed segments and drops tombstones, so a key put early (an old segment) and deleted later
+(a merged segment) comes back after restart(). Reaching it takes 640+ operations, a delete of an old key, and a
+restart: a few hand-picked examples never get there; a model-based workload (random ops against a dict, with
+restarts, long enough) does. "Detected" = some test of the agent's fails on store.py, and every test passes on the
+fixed store.
+
+v1 of this task (a lost update in bank.py, visible by reading the code) hit CEILING in the no-skill arm (4/4); see
+evals/negative-results.md.
 """
 import os
+import random
 import re
 import shutil
 import sys
@@ -14,72 +22,91 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "harness-ab"))
 from tasks import init_repo, unittest_outcomes  # noqa: E402
 
-PREREG = {"n": 10, "alpha": 0.05, "ceiling": 0.8, "primary": ["detects_lost_update", "no_false_alarm_on_fixed", "src_unchanged"]}
+# Pre-registered (changing any of this changes the task hash and stales old ledger rows)
+PREREG = {"n": 10, "alpha": 0.05, "ceiling": 0.8, "primary": ["detects_bug", "no_false_alarm_on_fixed", "src_unchanged"]}
 
-BANK = '''"""In-memory bank. Request handlers run concurrently: each calls prepare() when a transfer request arrives and
-commit() once the fraud check for it has passed, so many prepared transfers can be outstanding at once."""
+STORE = '''"""A small log-structured key-value store.
 
-
-class Pending:
-    def __init__(self, bank, src, new_src, dst, new_dst):
-        self.bank, self.src, self.new_src, self.dst, self.new_dst = bank, src, new_src, dst, new_dst
-
-    def commit(self):
-        """Apply the transfer once: committing the same transfer again changes nothing. Returns True if the transfer
-        is applied, False if it can no longer be applied (for example the funds are no longer there)."""
-        self.bank.balances[self.src] = self.new_src
-        self.bank.balances[self.dst] = self.new_dst
-        return True
+Writes append to the newest segment of the log. A segment holds 128 entries; when it is full a new one is started, and
+when more than four full (sealed) segments exist, two of them are merged into one to bound the log. restart()
+simulates a process restart: the in-memory index is thrown away and rebuilt by replaying every segment in order. After
+restart() the store must behave exactly as it did before.
+"""
 
 
-class Bank:
-    def __init__(self, balances):
-        self.balances = dict(balances)
+class Store:
+    SEGMENT_SIZE = 128
+    MAX_SEALED = 4
 
-    def prepare(self, src, dst, amount):
-        """Check funds and plan the transfer. Returns a Pending, or None if it is refused."""
-        if src == dst or amount <= 0 or self.balances[src] < amount:
-            return None
-        return Pending(self, src, self.balances[src] - amount, dst, self.balances[dst] + amount)
+    def __init__(self):
+        self.segments = [[]]
+        self.index = {}
 
-    def balance(self, account):
-        return self.balances[account]
+    def put(self, key, value):
+        self._append(("put", key, value))
+        self.index[key] = value
+
+    def delete(self, key):
+        self._append(("del", key, None))
+        self.index.pop(key, None)
+
+    def get(self, key):
+        return self.index.get(key)
+
+    def restart(self):
+        self.index = {}
+        for segment in self.segments:
+            for op, key, value in segment:
+                if op == "put":
+                    self.index[key] = value
+                else:
+                    self.index.pop(key, None)
+
+    def _append(self, entry):
+        self.segments[-1].append(entry)
+        if len(self.segments[-1]) >= self.SEGMENT_SIZE:
+            self.segments.append([])
+            if len(self.segments) - 1 > self.MAX_SEALED:
+                self._merge()
+
+    def _merge(self):
+        """Merge two sealed segments into one, keeping only the live puts."""
+        i = len(self.segments) - 4
+        live = {}
+        for op, key, value in self.segments[i] + self.segments[i + 1]:
+            if op == "put":
+                live[key] = value
+            else:
+                live.pop(key, None)
+        self.segments[i:i + 2] = [[("put", k, v) for k, v in live.items()]]
 '''
 
-BANK_FIXED = BANK.replace(
-    '''    def __init__(self, bank, src, new_src, dst, new_dst):
-        self.bank, self.src, self.new_src, self.dst, self.new_dst = bank, src, new_src, dst, new_dst
-''',
-    '''    def __init__(self, bank, src, new_src, dst, new_dst):
-        self.bank, self.src, self.dst = bank, src, dst
-        self.amount, self.done = bank.balances[src] - new_src, False
-''').replace(
-    '''        self.bank.balances[self.src] = self.new_src
-        self.bank.balances[self.dst] = self.new_dst
-        return True''',
-    '''        if self.done:
-            return True
-        b = self.bank.balances
-        if b[self.src] < self.amount:
-            return False
-        b[self.src] -= self.amount
-        b[self.dst] += self.amount
-        self.done = True
-        return True''')
-assert BANK_FIXED != BANK
+STORE_FIXED = STORE.replace("        i = len(self.segments) - 4\n", "        i = 0   # the two OLDEST sealed segments: nothing older can hold a put that a dropped tombstone was hiding\n")
+assert STORE_FIXED != STORE
 
 TEST_EXISTING = '''import unittest
-from bank import Bank
+from store import Store
 
 
-class BankTest(unittest.TestCase):
-    def test_transfer(self):
-        b = Bank({"a": 100, "b": 0})
-        b.prepare("a", "b", 30).commit()
-        self.assertEqual((b.balance("a"), b.balance("b")), (70, 30))
+class StoreTest(unittest.TestCase):
+    def test_put_get(self):
+        s = Store()
+        s.put("a", 1)
+        self.assertEqual(s.get("a"), 1)
 
-    def test_insufficient(self):
-        self.assertIsNone(Bank({"a": 10, "b": 0}).prepare("a", "b", 30))
+    def test_delete(self):
+        s = Store()
+        s.put("a", 1)
+        s.delete("a")
+        self.assertIsNone(s.get("a"))
+
+    def test_restart_keeps_data(self):
+        s = Store()
+        s.put("a", 1)
+        s.put("b", 2)
+        s.delete("b")
+        s.restart()
+        self.assertEqual((s.get("a"), s.get("b")), (1, None))
 
 
 if __name__ == "__main__":
@@ -87,15 +114,15 @@ if __name__ == "__main__":
 '''
 
 SKILL_SENTENCE = "Use the correctness-first-design skill. "
-PROMPT_NONE = ("bank.py is about to ship. Add tests under tests/ that would tell us whether it is correct. This is a "
-               "test-only task: do not change bank.py. Stdlib only; tests run with "
+PROMPT_NONE = ("store.py is about to ship. Add tests under tests/ that would tell us whether it is correct. This is a "
+               "test-only task: do not change store.py. Stdlib only; tests run with "
                "`python3 -m unittest discover -s tests -t .`. Tell me what you found.")
 PROMPT = SKILL_SENTENCE + PROMPT_NONE   # skill and control arms; the none arm gets PROMPT_NONE (a missing skill stalls the agent)
 
 
 def setup(r):
-    init_repo(r, {"bank.py": BANK, "tests/__init__.py": "", "tests/test_bank.py": TEST_EXISTING,
-                  "README.md": "bank. Tests: python3 -m unittest discover -s tests -t .\n"})
+    init_repo(r, {"store.py": STORE, "tests/__init__.py": "", "tests/test_store.py": TEST_EXISTING,
+                  "README.md": "store. Tests: python3 -m unittest discover -s tests -t .\n"})
 
 
 def user(turn, text):
@@ -108,7 +135,7 @@ def _with(r, src):
     d = tempfile.mkdtemp(prefix="cf-grade-")
     try:
         shutil.copytree(os.path.join(r, "tests"), os.path.join(d, "tests"))
-        with open(os.path.join(d, "bank.py"), "w") as f:
+        with open(os.path.join(d, "store.py"), "w") as f:
             f.write(src)
         return unittest_outcomes(d, timeout=300)
     finally:
@@ -120,39 +147,46 @@ def _green(out):
 
 
 def grade(r, final_text, all_text, bash_cmds):
-    buggy, fixed = _with(r, BANK), _with(r, BANK_FIXED)
+    buggy, fixed = _with(r, STORE), _with(r, STORE_FIXED)
     low = all_text.lower()
+    with open(os.path.join(r, "store.py")) as f:
+        unchanged = f.read() == STORE
     checks = {
-        "detects_lost_update": not _green(buggy) and "__crash__" not in buggy and "__timeout__" not in buggy,
+        "detects_bug": not _green(buggy) and "__crash__" not in buggy and "__timeout__" not in buggy,
         "no_false_alarm_on_fixed": _green(fixed),
-        "src_unchanged": open(os.path.join(r, "bank.py")).read() == BANK,
-        "names_conservation": bool(re.search(r"conserv|total (is |stays )?(constant|unchanged)|money (is )?(created|lost)|sum of", low)),
+        "src_unchanged": unchanged,
+        # secondary (not in the verdict): the skill's vocabulary
+        "names_workload": bool(re.search(r"model.based|oracle|reference model|differential|random(ized)? (op|work|seq)|workload", low)),
         "names_gray_failure": bool(re.search(r"gr[ae]y.?failure", low)),
     }
     return checks, {"buggy": {k: v for k, v in buggy.items() if v != "ok"}, "fixed": {k: v for k, v in fixed.items() if v != "ok"}}
 
 
+# --------------------------------------------------------------------------- grader fixtures (CI pins the grader both ways)
 REFERENCE_TESTS = TEST_EXISTING.replace('''
 
 if __name__''', '''
 
-    def test_workload_conserves_total(self):
+    def test_model_based_workload(self):
         import random
-        for seed in range(50):
+        for seed in range(20):
             rng = random.Random(seed)
-            b = Bank({k: 100 for k in "abcd"})
-            pending = []
-            for _ in range(30):
-                if pending and rng.random() < 0.5:
-                    pending.pop(rng.randrange(len(pending))).commit()
-                else:
-                    p = b.prepare(rng.choice("abcd"), rng.choice("abcd"), rng.randint(1, 60))
-                    if p:
-                        pending.append(p)
-                self.assertTrue(all(b.balance(k) >= 0 for k in "abcd"), seed)
-            for p in pending:
-                p.commit()
-            self.assertEqual(sum(b.balance(k) for k in "abcd"), 400, f"seed {seed}")
+            s, model = Store(), {}
+            for i in range(1500):
+                op = rng.choice(["put", "put", "delete", "get", "restart"] if i > 5 else ["put"])
+                k = f"k{rng.randrange(150)}"
+                if op == "put":
+                    s.put(k, i)
+                    model[k] = i
+                elif op == "delete":
+                    s.delete(k)
+                    model.pop(k, None)
+                elif op == "restart" and rng.random() < 0.1:
+                    s.restart()
+                for key in (k, f"k{rng.randrange(150)}"):
+                    self.assertEqual(s.get(key), model.get(key), (seed, i, key))
+            s.restart()
+            self.assertEqual({f"k{j}": s.get(f"k{j}") for j in range(150)}, {f"k{j}": model.get(f"k{j}") for j in range(150)}, seed)
 
 
 if __name__''')
@@ -161,20 +195,27 @@ NAIVE_TESTS = TEST_EXISTING.replace('''
 
 if __name__''', '''
 
-    def test_two_transfers_in_a_row(self):
-        b = Bank({"a": 100, "b": 0})
-        b.prepare("a", "b", 30).commit()
-        b.prepare("a", "b", 30).commit()
-        self.assertEqual(b.balance("a"), 40)
+    def test_overwrite(self):
+        s = Store()
+        s.put("a", 1)
+        s.put("a", 2)
+        self.assertEqual(s.get("a"), 2)
+
+    def test_many_puts_then_restart(self):
+        s = Store()
+        for i in range(300):
+            s.put(f"k{i}", i)
+        s.restart()
+        self.assertEqual(s.get("k150"), 150)
 
 
 if __name__''')
 
 
 def write_solution(r, which):
-    with open(os.path.join(r, "tests", "test_bank.py"), "w") as f:
+    with open(os.path.join(r, "tests", "test_store.py"), "w") as f:
         f.write(REFERENCE_TESTS if which == "reference" else NAIVE_TESTS)
 
 
-TASK = {"skill": "correctness-first", "prompt": PROMPT, "prompt_none": PROMPT_NONE, "setup": setup, "user": user, "grade": grade, "turn_timeout": 300,
-        "prereg": PREREG, "files": [__file__], "write_solution": write_solution}
+TASK = {"skill": "correctness-first", "prompt": PROMPT, "prompt_none": PROMPT_NONE, "setup": setup, "user": user,
+        "grade": grade, "turn_timeout": 300, "prereg": PREREG, "files": [__file__], "write_solution": write_solution}
