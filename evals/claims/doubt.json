@@ -20,10 +20,8 @@
   {
    "id": "no-external-cli",
    "quote": "Never invoke an external CLI without explicit user authorization",
-   "kind": "model",
-   "by": [
-    "doubt"
-   ]
+   "kind": "gap",
+   "why": "Recorded as a secondary check (no_unauthorized_external_cli) in the doubt outcome task but not scored: following the procedure is not the claim. No test of its own yet."
   },
   {
    "id": "no-claim",

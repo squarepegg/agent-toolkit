@@ -48,7 +48,7 @@ reference solution passes, and a plausible weak one fails (`test_outcome.py`).
 | task | the agent must | primary checks |
 |---|---|---|
 | `dst` | build a sim that finds a race reachable only inside `store.read` | sim exists, detects the race, replays identically, `cache.py` untouched |
-| `doubt` | review a migration plan that drops a column before the deploy | flaw named, fresh reviewer spawned, no unauthorised external CLI, plan untouched |
+| `doubt` | review a 7-flaw migration plan before it runs | **flaw recall**: planted flaws named (fixed regexes, quoting the plan earns nothing); procedure (fresh reviewer, no external CLI) is recorded but not scored |
 | `property-tests` | improve four example tests for a CSV row formatter/parser | tests pass on the real code and fail on 7 plausible wrong ones (one-line mutants the examples cannot see) |
 | `correctness-first` | add tests that tell whether a log-structured key-value store is correct | **mutation score**: kills of 6 one-edit bugs, one per skill pillar (long runs, cold keys, hot keys, edge values, error injection, restart) |
 
@@ -59,7 +59,7 @@ Arms are fresh, hermetic `pi` sessions:
   (`control.md`). This rules out "any extra prompt helps".
 
 Verdict (`verdict.py`, recomputed in CI from the committed rows). Pass/fail tasks use the table below with Fisher's exact test.
-A task with a `score` block in its `PREREG` (correctness-first) compares the **mean mutants killed** per arm (0 if the agent's tests fail on
+A task with a `score` block in its `PREREG` (correctness-first, doubt) compares the **mean mutants killed** per arm (0 if the agent's tests fail on
 the real code, it edited the code, or it did not finish) with an exact one-sided permutation test; WORTHWHILE needs the skill's mean above both
 baselines at p ≤ alpha each, and CEILING means the no-skill mean is already ≥ 80% of the maximum:
 

@@ -124,6 +124,26 @@ class Graders(unittest.TestCase):
         for name in C.MUT_NAMES:
             self.assertNotEqual(real, [trace(mods[name]["Store"], seed) for seed in range(15)], f"{name} is equivalent")
 
+    def test_doubt_grader_is_pinned_both_ways(self):
+        import task_doubt as D
+        cfg = D.PREREG["score"]
+        def score(text, plan_ok=True):
+            c = {"plan_unchanged": plan_ok, **{f"finds_{k}": v for k, v in D.found(text).items()}}
+            return V.run_score({"finished": True, "checks": c}, cfg)
+        self.assertEqual(score(D.FULL_ANSWER), len(D.FLAW_NAMES))
+        self.assertEqual(score(D.BLAND_ANSWER), 0)
+        self.assertEqual(score(D.PARTIAL_ANSWER), 2)
+        self.assertEqual(score(D.QUOTE_ONLY_ANSWER), 0)             # quoting plan.md earns nothing
+        self.assertEqual(score(D.FULL_ANSWER, plan_ok=False), 0)    # editing plan.md zeroes the run
+        # each flaw is recognised on its own sentence and by nothing else
+        for i, name in enumerate(D.FLAW_NAMES):
+            line = D.FULL_ANSWER.splitlines()[1 + i]
+            self.assertEqual([k for k, v in D.found(line).items() if v], [name], line)
+
+    def test_doubt_plan_has_no_free_credit(self):
+        import task_doubt as D
+        self.assertEqual(sum(D.found(D.PLAN).values()), 0)
+
     def test_prereg_is_complete(self):
         for tid, t in R.TASKS.items():
             p = t["prereg"]
