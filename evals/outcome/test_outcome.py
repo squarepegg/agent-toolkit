@@ -258,6 +258,28 @@ class EndToEndWithFakeAgent(unittest.TestCase):
                 os.environ["EVAL_PI"] = saved[2]
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_a_silent_agent_times_out_instead_of_hanging(self):
+        import time
+        import run as RUN
+        tmp = tempfile.mkdtemp()
+        silent = os.path.join(tmp, "silent_pi.sh")
+        with open(silent, "w") as f:
+            f.write("#!/bin/sh\nsleep 60\n")
+        os.chmod(silent, 0o755)
+        saved = os.environ.get("EVAL_PI")
+        os.environ["EVAL_PI"] = silent
+        try:
+            t0 = time.time()
+            log, usage, finished = RUN.session(tmp, None, "hi", lambda n, t: None, turn_timeout=2)
+            self.assertFalse(finished)
+            self.assertLess(time.time() - t0, 20)
+        finally:
+            if saved is None:
+                os.environ.pop("EVAL_PI", None)
+            else:
+                os.environ["EVAL_PI"] = saved
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_preflight_refuses_unpinned_model(self):
         import run as RUN
         saved = os.environ.pop("EVAL_PI_ARGS", None)

@@ -209,5 +209,5 @@ def write_solution(r, which):
         f.write(REFERENCE_TESTS if which == "reference" else NAIVE_TESTS)
 
 
-TASK = {"skill": "property-tests", "prompt": PROMPT, "setup": setup, "user": user, "grade": grade, "turn_timeout": 900,
+TASK = {"skill": "property-tests", "prompt": PROMPT, "setup": setup, "user": user, "grade": grade, "turn_timeout": 300,
         "prereg": PREREG, "files": [__file__], "write_solution": write_solution}

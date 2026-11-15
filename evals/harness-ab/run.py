@@ -11,7 +11,7 @@ Arms: A = skill as on this branch's base, B = progressive disclosure (scripts/sp
 scripts/dst_lint.py and a hard rule to run it. Resumable: a (task, arm, i) already in --out is skipped.
 Report: python3 evals/harness-ab/report.py <out.jsonl>
 """
-import concurrent.futures as cf, json, os, shutil, subprocess, sys, tempfile, threading, time
+import concurrent.futures as cf, json, os, queue, shutil, subprocess, sys, tempfile, threading, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -61,6 +61,8 @@ def session(cwd, skill_dir, first, user, turn_timeout):
     env = {**os.environ, "TMPDIR": os.path.join(cwd, "..", "tmp")}
     os.makedirs(env["TMPDIR"], exist_ok=True)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, cwd=cwd, env=env)
+    lines = queue.Queue()   # a reader thread, so the turn timeout holds even when the agent goes silent (readline would block forever)
+    threading.Thread(target=lambda: ([lines.put(l) for l in p.stdout], lines.put(None)), daemon=True).start()
     log, usage, msg, n = [], {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "cost": 0.0, "assistant_msgs": 0}, first, 0
     finished = True
     try:
@@ -68,8 +70,9 @@ def session(cwd, skill_dir, first, user, turn_timeout):
             n += 1
             p.stdin.write(json.dumps({"id": f"q{n}", "type": "prompt", "message": msg}) + "\n"); p.stdin.flush()
             text, tools, t0, settled = [], [], time.time(), False
-            while time.time() - t0 < turn_timeout:
-                line = p.stdout.readline()
+            while True:
+                try: line = lines.get(timeout=max(0.0, turn_timeout - (time.time() - t0)))
+                except queue.Empty: break          # turn timeout: no settle, the run is recorded as unfinished
                 if not line: break
                 try: e = json.loads(line)
                 except ValueError: continue
