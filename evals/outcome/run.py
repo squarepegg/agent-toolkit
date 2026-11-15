@@ -98,7 +98,7 @@ def one(task_id, arm, i, arm_dir, model, head, hashes):
     lock = SERIAL if t.get("serial") else threading.Lock()
     with lock:
         t0 = time.time()
-        log, usage, finished = session(r, arm_dir, t["prompt"], t["user"], t["turn_timeout"])
+        log, usage, finished = session(r, arm_dir, t["prompt_none"] if arm == "none" and t.get("prompt_none") else t["prompt"], t["user"], t["turn_timeout"])
     if usage["assistant_msgs"] == 0:   # the agent never answered (bad model/extension/auth): not a result, never record it
         raise RuntimeError(f"{task_id}-{arm} #{i}: no assistant message; check EVAL_PI_ARGS (a gateway model needs -e <extension> because "
                            f"--no-extensions drops its provider) and that `pi --mode rpc` starts")

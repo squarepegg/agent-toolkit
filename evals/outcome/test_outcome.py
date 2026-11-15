@@ -280,6 +280,12 @@ class EndToEndWithFakeAgent(unittest.TestCase):
                 os.environ["EVAL_PI"] = saved
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_none_arm_prompt_does_not_name_a_missing_skill(self):
+        import task_property_tests as P
+        self.assertNotIn("skill", P.PROMPT_NONE.lower())
+        self.assertTrue(P.PROMPT.startswith("Use the property-tests-from-examples skill."))
+        self.assertTrue(P.PROMPT.endswith(P.PROMPT_NONE))      # otherwise identical
+
     def test_preflight_refuses_unpinned_model(self):
         import run as RUN
         saved = os.environ.pop("EVAL_PI_ARGS", None)

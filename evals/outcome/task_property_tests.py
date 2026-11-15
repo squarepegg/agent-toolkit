@@ -6,7 +6,8 @@ each a one-line change that the four original examples cannot see. Each is only 
 at edge cases produces (a single empty field, a trailing empty field, empty fields in the middle, whitespace, a field
 with both a comma and a quote) or by checking the examples are not the whole behaviour (the lookup). No model grades anything.
 
-The prompt names the skill on every arm (so the skill arm loads it; the none arm cannot), as the dst task does.
+The skill and control arms are told to use the skill (so it loads); the none arm gets the same prompt without that
+sentence: told to use a skill that does not exist, the agent stalls (3 of 5 runs, 300 s, almost no output).
 
 History: v1 (merge_intervals) hit CEILING (5/5 in every arm). v2 (an arbitrary 32-field truncation mutant, prompt without
 the skill's name) hit FLOOR (0/5 in every arm; nobody tested rows that long, and the skill was read in 1 of 5 runs). v3
@@ -123,10 +124,12 @@ if __name__ == "__main__":
     unittest.main()
 '''
 
-PROMPT = ("Use the property-tests-from-examples skill. Are the tests in tests/test_csvline.py good enough? Improve them. "
-          "This is a test-only task: do not change "
+SKILL_SENTENCE = "Use the property-tests-from-examples skill. "
+PROMPT_NONE = ("Are the tests in tests/test_csvline.py good enough? Improve them. "
+               "This is a test-only task: do not change "
           "csvline.py. No third-party packages are installed; tests run with "
           "`python3 -m unittest discover -s tests -t .`. Tell me what you found.")
+PROMPT = SKILL_SENTENCE + PROMPT_NONE   # skill and control arms; the none arm gets PROMPT_NONE (a skill that is not there stalls the agent)
 
 
 def setup(r):
@@ -209,5 +212,5 @@ def write_solution(r, which):
         f.write(REFERENCE_TESTS if which == "reference" else NAIVE_TESTS)
 
 
-TASK = {"skill": "property-tests", "prompt": PROMPT, "setup": setup, "user": user, "grade": grade, "turn_timeout": 300,
+TASK = {"skill": "property-tests", "prompt": PROMPT, "prompt_none": PROMPT_NONE, "setup": setup, "user": user, "grade": grade, "turn_timeout": 300,
         "prereg": PREREG, "files": [__file__], "write_solution": write_solution}
