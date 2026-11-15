@@ -210,6 +210,29 @@ class EndToEndWithFakeAgent(unittest.TestCase):
                     os.environ[k] = val
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_a_run_where_the_agent_never_answers_is_not_recorded(self):
+        import run as RUN
+        tmp = tempfile.mkdtemp()
+        saved = (V.LEDGER, RUN.FULL, os.environ.get("EVAL_PI"))
+        V.LEDGER, RUN.FULL = os.path.join(tmp, "ledger"), os.path.join(tmp, "full")
+        os.makedirs(V.LEDGER); os.makedirs(RUN.FULL)
+        dead = os.path.join(tmp, "dead_pi.sh")
+        with open(dead, "w") as f:
+            f.write("#!/bin/sh\nexit 1\n")
+        os.chmod(dead, 0o755)
+        os.environ["EVAL_PI"] = dead
+        try:
+            with self.assertRaises(RuntimeError):
+                RUN.one("property-tests", "none", 0, None, '["--model","x"]', "head", V.current_hashes("property-tests"))
+            self.assertEqual(os.listdir(V.LEDGER), [])
+        finally:
+            V.LEDGER, RUN.FULL = saved[:2]
+            if saved[2] is None:
+                os.environ.pop("EVAL_PI", None)
+            else:
+                os.environ["EVAL_PI"] = saved[2]
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_preflight_refuses_unpinned_model(self):
         import run as RUN
         saved = os.environ.pop("EVAL_PI_ARGS", None)
