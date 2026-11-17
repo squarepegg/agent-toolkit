@@ -22,6 +22,7 @@ Verdicts per task (pre-registered `prereg` in the task file: n, alpha, ceiling, 
 import glob
 import hashlib
 import json
+import math
 import os
 import sys
 from math import comb
@@ -158,7 +159,7 @@ def verdict(task_id, rows=None, model=None):
     score = {a: (sum(passed(r, pre["primary"]) for r in by[a]), len(by[a])) for a in ARMS}
     out = {"task": task_id, "skill": t["skill"], "model": model, "score": score, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
            "cell": {a: f"{score[a][0]}/{score[a][1]}" for a in ARMS},
-           "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in fresh), 2),
+           "cost_usd": round(math.fsum(float(r.get("cost_usd") or 0) for r in fresh), 2),
            "models": sorted({r.get("model", "?") for r in fresh})}
     if not fresh:
         out["verdict"] = "NOT_RUN"
@@ -189,7 +190,7 @@ def _verdict_score(task_id, t, pre, rows, fresh, by):
     out = {"task": task_id, "skill": t["skill"], "model": fresh[0]["model"] if fresh else None, "mode": "score", "max": mx, "scores": scores,
            "score": {a: (round(mean[a], 2), len(scores[a])) for a in ARMS}, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
            "cell": {a: f"{mean[a]:.1f}/{mx}" for a in ARMS},
-           "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in fresh), 2),
+           "cost_usd": round(math.fsum(float(r.get("cost_usd") or 0) for r in fresh), 2),
            "models": sorted({r.get("model", "?") for r in fresh})}
     if not fresh:
         out["verdict"] = "NOT_RUN"

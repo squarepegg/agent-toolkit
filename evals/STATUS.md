@@ -20,7 +20,7 @@ Cells are runs passed (`k/n`) or, for mutation-score tasks, mean mutants killed 
 
 | task | verdict | none | skill | control | p vs none | p vs control | stale rows | cost | model |
 |---|---|---|---|---|---|---|---|---|---|
-| dst | NOT_RUN | 0/0 | 0/0 | 0/0 |  |  | 0 | $0 |  |
+| dst | NOT_RUN | 0/0 | 0/0 | 0/0 |  |  | 0 | $0.0 |  |
 | doubt | INCONCLUSIVE | 1.4/7 | 6.7/7 | 6.1/7 | 0.0004 | 0.1215 | 4 | $2.2 | fortis-ai-gateway/claude-haiku-4-5-20251001 (thinking medium) |
 | doubt | INCOMPLETE | 7.0/7 | 0.0/7 | 0.0/7 |  |  | 30 | $0.35 | fortis-ai-gateway/claude-sonnet-5-5 (thinking medium) |
 | property-tests | INCONCLUSIVE | 7/10 | 10/10 | 5/10 | 0.1053 | 0.0163 | 60 | $1.55 | fortis-ai-gateway/claude-sonnet-5-5 (thinking medium) |
