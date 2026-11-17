@@ -1,0 +1,8 @@
+{
+ "id": "regen-decision-capture",
+ "source": "skills/regen/decision-capture (this repo)",
+ "claim": "Loading skills/regen/decision-capture makes a default model answer the decision-capture probes correctly more often than no skill",
+ "skill": "regen/decision-capture",
+ "samples": 3,
+ "min_gain": 2
+}

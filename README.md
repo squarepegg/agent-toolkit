@@ -14,6 +14,8 @@ Personal collection of agent skills, small utilities and benchmarks.
 | `skills/property-tests` | Property tests from examples: the dumbest implementation that passes your tests, then round-trip / invariant / idempotence / oracle / metamorphic properties. |
 | `skills/tests-as-data` | Tests as data for agent-written code: tables, scenario DSLs, golden/approval tests and evals as small human-readable files run by a frozen runner; red-first TDD, determinism rules, and `scripts/guard.py`, which fails a diff that touches test data or the runner in a task that should not. Tests: `tests/test_tests_as_data.py`. |
 | `skills/spec-first` | Interview the user into a checkable spec (code first, one decision at a time, defaults marked assumed), then verify the change with a fresh reviewer that sees only spec + diff + raw output; scripts decide PASS / FAIL / NOT CHECKED. Tests: `tests/test_spec_first.py`, `tests/planted_bugs.py`; live evals: `evals/run_evals.py`. |
+| `skills/code-review` | Risk-triage a change into tiers T0-T3 with deterministic rules (impact, boundary, detectability, recovery), then two-axis review with a finder/verifier split, evidence-gated findings, union of repeated runs and a pass-count gate. Scripts, planted-defect corpus and a mutation check. |
+| `skills/regen` | Six Phoenix-style skills for mature code: implementation-memory audit, eval tiering, deletion test, architecture constraints, decision capture, compaction pass. Link the ones you use. |
 
 Each skill is a directory with a `SKILL.md`, and optionally `roles/`, `scripts/`, `templates/`,
 `reference/` and `examples/`.
@@ -30,6 +32,7 @@ ln -s "$PWD/skills/spec-first"         ~/.agents/skills/spec-first
 ln -s "$PWD/skills/correctness-first"  ~/.agents/skills/correctness-first-design
 ln -s "$PWD/skills/property-tests"     ~/.agents/skills/property-tests-from-examples
 ln -s "$PWD/skills/tests-as-data"      ~/.agents/skills/tests-as-data
+ln -s "$PWD/skills/code-review"        ~/.agents/skills/code-review
 
 # Claude Code: link each skill into ~/.claude/skills instead (spec-first finds `pi` or `claude` itself for its reviewer)
 ```
@@ -38,6 +41,9 @@ ln -s "$PWD/skills/tests-as-data"      ~/.agents/skills/tests-as-data
 macOS `sandbox-exec`, and for the Kotlin defaults JDK 21 and Gradle. Model gateway: `SDLC_GATEWAY_URL`
 (see the skill's README). Unit tests: `python3 skills/adversarial-sdlc/tests/<name>_unit_test.py`;
 some need `ast-grep` on `PATH`.
+`skills/code-review` needs only Python 3.9+: `python3 skills/code-review/tests/<name>_unit_test.py`, then `python3 skills/code-review/tests/planted_bugs.py` (mutation check) (CI runs both).
+`skills/regen` needs Python 3.9+ and git: `python3 skills/regen/tests/test_<name>.py` (script fixtures, structure, hygiene, probe graders; CI runs all). Its Kotlin examples are compiled and run against stub classes by `bash skills/regen/tests/run_kotlin.sh` (JDK 21; the `@Disabled` flagged-rule example compiles only). Each sub-skill has `evals/probes.json` and an `evals/candidates/regen-<sub>.json`; live A/B: `python3 scripts/skill_ab.py regen/<sub>` (costs tokens).
+`skills/dst` free gates (CI runs all): `skills/dst/tests/test_probes.py` (probe graders both ways, every `expect` group answerable from the skill), `test_python_template.py`, `test_seed_sweep.py`, and `scripts/check_skills.py` pins, budget and forbid list from `skills/dst/tests/golden.json`. The Kotlin templates are compiled and run (engine self-tests, skeleton sweep, mutant catches) by `bash skills/dst/tests/run_kotlin.sh` (JDK 21, downloads Gradle and dependencies; the `@Tag("docker")` conformance test is compiled but not run). The live probe A/B for the new dst text is `evals/candidates/dst-skill.json` (label the PR `eval`).
 `skills/tests-as-data` needs only Python 3.9+ (and git for `guard.py --base`): `python3 skills/tests-as-data/tests/test_tests_as_data.py` (CI runs it).
 `skills/spec-first` needs only Python 3.9+, git and bash: `python3 skills/spec-first/tests/test_spec_first.py`, then
 `python3 skills/spec-first/tests/planted_bugs.py` (CI runs both); `evals/run_evals.py` drives a live `pi` session and costs tokens.

@@ -1,0 +1,26 @@
+diff --git a/src/export.py b/src/export.py
+--- a/src/export.py
++++ b/src/export.py
+@@ -1,6 +1,18 @@
++import os
++
++PAGE = 100
++
++
++def fetch_all(client):
++    return client.list(limit=PAGE)
++
++
++def load(path):
++    try:
++        return open(path).read()
++    except Exception:
++        pass
++
++
++def region():
++    return os.environ.get("REGION", "eu-west-1")
++
++
++def total(xs):
++    return sum(xs)

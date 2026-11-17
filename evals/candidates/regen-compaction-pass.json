@@ -1,0 +1,8 @@
+{
+ "id": "regen-compaction-pass",
+ "source": "skills/regen/compaction-pass (this repo)",
+ "claim": "Loading skills/regen/compaction-pass makes a default model answer the compaction-pass probes correctly more often than no skill",
+ "skill": "regen/compaction-pass",
+ "samples": 3,
+ "min_gain": 2
+}

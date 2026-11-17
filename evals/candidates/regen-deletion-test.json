@@ -1,0 +1,8 @@
+{
+ "id": "regen-deletion-test",
+ "source": "skills/regen/deletion-test (this repo)",
+ "claim": "Loading skills/regen/deletion-test makes a default model answer the deletion-test probes correctly more often than no skill",
+ "skill": "regen/deletion-test",
+ "samples": 3,
+ "min_gain": 2
+}

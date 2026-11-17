@@ -1,0 +1,53 @@
+[
+ {
+  "id": "ima-lesson-forms",
+  "q": "In implementation-memory-audit, in which forms may the lesson for a code site be stated?",
+  "expect": [
+   [
+    "stated:"
+   ],
+   [
+    "inferred:"
+   ],
+   [
+    "unknown"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "ima-guard-states",
+  "q": "What states does the implementation-memory-audit skill use to rate the guard test of each site?",
+  "expect": [
+   [
+    "pinned"
+   ],
+   [
+    "mentioned"
+   ],
+   [
+    "none"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "ima-status",
+  "q": "What status labels can a finding get in an implementation-memory-audit report?",
+  "expect": [
+   [
+    "scar: guarded"
+   ],
+   [
+    "scar: unguarded"
+   ],
+   [
+    "unknown, do not remove"
+   ],
+   [
+    "incidental"
+   ]
+  ],
+  "split": "heldout"
+ }
+]

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "note": "Generic defaults. Copy and edit for your repos: pass --rules my-rules.json. A rule matches a changed file path (regex) and/or the file's added lines joined by newlines (regex); if both are given, both must match in the same file. Scores: 0 none, 1 low, 2 material, 3 severe.",
+  "docs_tests_path": "(^|/)(docs?|tests?|__tests__|spec|specs)/|\\.(md|txt|rst)$|(_test|\\.test|\\.spec)\\.[a-z]+$",
+  "rules": [
+    {"id": "auth-code", "domain": "security", "factor": "boundary", "score": 3, "path": "(^|/)(auth|authn|authz|iam|oauth|sso|session|permissions?)(/|\\.|_)", "why": "authentication/authorization code"},
+    {"id": "crypto-secrets", "domain": "security", "factor": "boundary", "score": 3, "added": "(?i)(private[_ -]?key|BEGIN [A-Z ]*PRIVATE|secret|password|api[_-]?key|token)\\s*[:=]", "why": "credential-like assignment added"},
+    {"id": "crypto-primitives", "domain": "security", "factor": "boundary", "score": 3, "added": "(?i)\\b(md5|sha1|aes|hmac|pbkdf2|bcrypt|argon2|SecureRandom)\\b", "why": "cryptographic primitive touched"},
+    {"id": "pii", "domain": "data", "factor": "boundary", "score": 2, "added": "(?i)\\b(email|ssn|birth_?date|phone|address|passport|ip_?address)\\b", "why": "personal-data field referenced"},
+    {"id": "migration", "domain": "data", "factor": "recovery", "score": 3, "path": "(^|/)(migrations?|db/migrate|alembic)/|\\.sql$", "why": "schema/data migration: hard to undo"},
+    {"id": "destructive-sql", "domain": "data", "factor": "recovery", "score": 3, "added": "(?i)\\b(drop\\s+(table|column|database)|truncate\\s+table|delete\\s+from)\\b", "why": "destructive statement added"},
+    {"id": "public-contract", "domain": "contract", "factor": "impact", "score": 2, "path": "(^|/)(openapi|swagger|proto|schemas?)/|\\.(proto|avsc)$|openapi.*\\.(ya?ml|json)$", "why": "public/inter-service contract"},
+    {"id": "prod-infra", "domain": "infra", "factor": "impact", "score": 3, "path": "(^|/)(prod|production|terraform|helm|k8s|kubernetes|deploy)(/|\\.)|\\.tf$|Dockerfile$", "why": "production infrastructure/deploy config"},
+    {"id": "ci-pipeline", "domain": "infra", "factor": "impact", "score": 2, "path": "(^|/)\\.github/workflows/|(^|/)\\.gitlab-ci|Jenkinsfile$", "why": "CI/CD pipeline"},
+    {"id": "dependency", "domain": "supply-chain", "factor": "detectability", "score": 2, "path": "(^|/)(package(-lock)?\\.json|yarn\\.lock|pnpm-lock\\.yaml|requirements[^/]*\\.txt|poetry\\.lock|go\\.(mod|sum)|Cargo\\.(toml|lock)|build\\.gradle(\\.kts)?|pom\\.xml)$", "why": "dependency set changed"},
+    {"id": "error-swallow", "domain": "code", "factor": "detectability", "score": 2, "added": "(?i)(except[^\\n:]*:\\s*(pass\\b|\\n\\s*pass\\b)|catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}|\\|\\|\\s*true\\b)", "why": "error silenced: failures become invisible"},
+    {"id": "concurrency", "domain": "code", "factor": "detectability", "score": 2, "added": "(?i)\\b(synchronized|mutex|lock\\(|atomic|async\\s+def|Thread|goroutine|go\\s+func)\\b", "why": "concurrency primitive: failures are intermittent"},
+    {"id": "payments", "domain": "money", "factor": "impact", "score": 3, "path": "(?i)(^|/)(payments?|billing|checkout|invoice|ledger)(/|\\.|_)", "why": "money-moving code"},
+    {"id": "feature-flag-config", "domain": "config", "factor": "recovery", "score": 1, "path": "(^|/)(config|settings)[^/]*\\.(ya?ml|json|toml)$", "why": "runtime config: quick to revert"},
+    {"id": "source-change", "domain": "code", "factor": "impact", "score": 1, "path": "\\.(py|kt|java|ts|tsx|js|go|rs|cs|rb|swift|c|cc|cpp|h)$", "why": "production source changed"}
+  ],
+  "split_lines": 800,
+  "bump_when_factors_at_least_2": 2,
+  "tiers": {
+    "T0": {"finder_passes": 1, "human": "none", "when": "docs/tests only and nothing risky"},
+    "T1": {"finder_passes": 1, "human": "optional", "when": "low impact; author owns it"},
+    "T2": {"finder_passes": 1, "human": "one reviewer", "when": "material risk in some factor"},
+    "T3": {"finder_passes": 2, "human": "independent reviewer, plus design check before coding", "when": "severe risk in some factor, or several factors material"}
+  }
+}

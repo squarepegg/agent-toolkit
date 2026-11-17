@@ -1,0 +1,14 @@
+{
+ "arch-provenance-header": {
+  "pass": "Each rule carries Rule, Reason, Set by, Source, Revisit when and Regeneration test in a @fitness KDoc.",
+  "fail": "Each rule needs a Rule, a Reason and a Source link, nothing more."
+ },
+ "arch-flagged-rule": {
+  "pass": "Don't enforce it. Draft it @Disabled(\"no provenance: ...\") in a separate flagged constraints file and mark it flagged: no reason.",
+  "fail": "Enforce it anyway since the structure is consistent; invent a plausible reason."
+ },
+ "arch-mutation-check": {
+  "pass": "The mutation must be the failure the rule's `Reason` names, not just any forbidden dependency. If it already fails, report it as a finding and do not weaken the rule.",
+  "fail": "Add any forbidden import and confirm it fails; if the rule fails today, adjust it until it passes."
+ }
+}
