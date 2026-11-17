@@ -1,0 +1,52 @@
+[
+ {
+  "id": "compact-risk-levels",
+  "q": "In the compaction-pass skill, what risk levels are proposals ranked by? Name all of them.",
+  "expect": [
+   [
+    "excluded"
+   ],
+   [
+    "medium"
+   ],
+   [
+    "high"
+   ],
+   [
+    "low"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "compact-apply",
+  "q": "After a compaction-pass report is written, may the removals be applied right away? How are they applied?",
+  "expect": [
+   [
+    "confirm"
+   ],
+   [
+    "number"
+   ],
+   [
+    "one commit each",
+    "own commit",
+    "separate commit"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "compact-excluded",
+  "q": "How does compaction-pass treat code that an implementation memory audit marked as scar tissue or unknown?",
+  "expect": [
+   [
+    "excluded"
+   ],
+   [
+    "audit row"
+   ]
+  ],
+  "split": "heldout"
+ }
+]

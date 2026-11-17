@@ -34,7 +34,7 @@ ARCH_DECL = re.compile(
     r"(?:val|var|fun|static\s+final\s+ArchRule|ArchRule)\s+`?([\w ]+?)`?\s*(?::\s*ArchRule)?\s*(?:=|\()"
     r"(?=[\s\S]{0,400}?\b(noClasses|classes|layeredArchitecture|onionArchitecture|methods|fields|noMethods|noFields|slices)\(\))")
 ARCH_TEST = re.compile(r"@ArchTest")
-TEST_DECL = re.compile(r"(?:fun\s+`([^`]+)`|\btest\(\s*\"([^\"]+)\"|\bshould\(\s*\"([^\"]+)\"|^\s*\"([^\"]{6,})\"\s*\{|def\s+(test_\w+))", re.M)
+TEST_DECL = re.compile(r"(?:fun\s+`([^`]+)`|\btest\(\s*\"([^\"]+)\"|\bshould\(\s*\"([^\"]+)\"|^\s*\"([^\"]{6,})\"\s*\{|def\s+(test_\w+)|\bfun\s+(\w+)\s*\()", re.M)
 DOC = re.compile(r"/\*\*(.*?)\*/|\"\"\"(.*?)\"\"\"", re.S)
 DISABLED = re.compile(r"@Disabled|@ArchIgnore|@Ignore\b|\bxtest\(|enabled\s*=\s*false|@pytest\.mark\.skip|\.skip\(")
 
@@ -98,12 +98,20 @@ def rules_in(path: Path) -> list[dict]:
             return d[2], d[0]
         return "", -1
 
-    candidates = [(m.start(), (m.group(1) or "").strip()) for m in ARCH_DECL.finditer(src)]
-    candidates += [(m.start(), "") for m in ARCH_TEST.finditer(src)]
+    decl_candidates = [(m.start(), (m.group(1) or "").strip()) for m in ARCH_DECL.finditer(src)]
+    candidates = list(decl_candidates)
+    for m in ARCH_TEST.finditer(src):
+        # `@ArchTest` on a rule declaration is the same rule: keep the declaration, not a second entry
+        if any(p > m.end() and BETWEEN_DOC_AND_DECL.fullmatch(src[m.end():p]) for p, _ in decl_candidates):
+            continue
+        candidates.append((m.start(), ""))
+    arch_positions = [p for p, _ in candidates]
     for d in docs:
         if "@fitness" in d[2]:
             after = src[d[1]:d[1] + 300]
             tm = TEST_DECL.search(after)
+            if not tm and any(p >= d[1] and BETWEEN_DOC_AND_DECL.fullmatch(src[d[1]:p]) for p in arch_positions):
+                continue  # a documented ArchRule: the rule candidate below carries the declaration line, not this doc's */
             name = next((g for g in tm.groups() if g), "") if tm else ""
             candidates.append((d[1] + (tm.start() if tm else 0), name))
     for pos, name in sorted(candidates):

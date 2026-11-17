@@ -1,0 +1,14 @@
+{
+ "compact-risk-levels": {
+  "pass": "Risk is low, medium, high or excluded (scar tissue or unknown origin, which cannot be proposed).",
+  "fail": "Rank them by lines saved, biggest first."
+ },
+ "compact-apply": {
+  "pass": "No. Propose only; the user confirms each item by number, and each applied item is one commit each, after its guard exists.",
+  "fail": "Yes, apply all low-risk removals in a single cleanup commit."
+ },
+ "compact-excluded": {
+  "pass": "It goes in the Excluded table with its audit row number and why it stays.",
+  "fail": "Treat unknown code as dead and propose removing it as high risk."
+ }
+}

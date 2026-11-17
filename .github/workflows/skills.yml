@@ -43,3 +43,5 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: dst Kotlin templates (engine self-tests, skeleton sweep, mutant catches; docker-tagged conformance excluded)
         run: bash skills/dst/tests/run_kotlin.sh
+      - name: regen Kotlin examples (compiled against stub production classes; ArchUnit rules, config and wire-contract examples run)
+        run: bash skills/regen/tests/run_kotlin.sh

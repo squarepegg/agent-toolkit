@@ -35,6 +35,11 @@ def header(omit=(), **override):
 
 HEADER = header()
 
+
+def line_of(src, needle):
+    """1-based line number of the first line containing needle"""
+    return next(i + 1 for i, ln in enumerate(src.splitlines()) if needle in ln)
+
 RULE = """    private val onlyWriterWritesCooldown: ArchRule =
         noClasses().that().resideOutsideOfPackages("a..").should().dependOnClassesThat().haveFullyQualifiedName("b.C")
 """
@@ -74,10 +79,11 @@ class Statuses(unittest.TestCase):
         return cp.rules_in(fx.write(self.dir, name, text))
 
     def test_complete_header_is_ok(self):
-        (r,) = self.rules(kt(HEADER + RULE))
+        src = kt(HEADER + RULE)
+        (r,) = self.rules(src)
         self.assertEqual((r["rule"], r["status"], r["missing"], r["disabled"]),
                          ("onlyWriterWritesCooldown", "ok", [], False))
-        self.assertIn(r["line"], (15, 16))  # the closing */ line or the declaration line
+        self.assertEqual(r["line"], line_of(src, "onlyWriterWritesCooldown"))  # the declaration, not the doc's */
 
     def test_missing_header_is_enforced_without_reason(self):
         (r,) = self.rules(kt(RULE))
@@ -128,13 +134,40 @@ class Statuses(unittest.TestCase):
         (r,) = self.rules(src)
         self.assertEqual(r["rule"], "vendor timeout stays below the balancer idle timeout")
         self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["line"], line_of(src, "fun `vendor timeout"))
 
-    def test_java_arch_test_annotation(self):
+    def test_fitness_tagged_plain_named_function_reports_its_declaration_line(self):
+        """regression: a camelCase `fun name()` was not matched, so the line fell back to the doc's closing */"""
+        src = kt(HEADER + "    @Test\n    fun vendorTimeoutBelowBalancer() {}\n")
+        (r,) = self.rules(src)
+        self.assertEqual(r["rule"], "vendorTimeoutBelowBalancer")
+        self.assertEqual(r["line"], line_of(src, "fun vendorTimeoutBelowBalancer"))
+        self.assertGreater(r["line"], line_of(src, "*/"))
+
+    def test_java_arch_test_annotation_on_a_rule_declaration_is_one_rule(self):
+        """regression: the @ArchTest annotation and the ArchRule declaration were reported as two entries"""
         src = ("import com.tngtech.archunit.junit.ArchTest;\nclass T {\n"
                "  @ArchTest\n  static final ArchRule noCycles = slices().matching(\"a.(*)..\").should().beFreeOfCycles();\n}\n")
         rs = self.rules(src, "T.java")
-        self.assertTrue(rs)
-        self.assertEqual({r["status"] for r in rs}, {"ENFORCED WITHOUT REASON"})
+        self.assertEqual([(r["rule"], r["line"], r["status"]) for r in rs], [("noCycles", 4, "ENFORCED WITHOUT REASON")])
+
+    def test_arch_test_annotation_with_modifiers_and_other_annotations_is_still_one_rule(self):
+        src = ("import com.tngtech.archunit.junit.ArchTest;\nclass T {\n"
+               "  @ArchTest\n  @SomeOther(\"x\")\n  public static final ArchRule noCycles = slices().matching(\"a\").should().beFreeOfCycles();\n}\n")
+        self.assertEqual([r["rule"] for r in self.rules(src, "T.java")], ["noCycles"])
+
+    def test_two_arch_test_rules_stay_two_entries(self):
+        src = ("import com.tngtech.archunit.junit.ArchTest;\nclass T {\n"
+               "  @ArchTest\n  static final ArchRule a = slices().matching(\"a\").should().beFreeOfCycles();\n"
+               "  @ArchTest\n  static final ArchRule b = classes().should().bePublic();\n}\n")
+        self.assertEqual([r["rule"] for r in self.rules(src, "T.java")], ["a", "b"])
+
+    def test_arch_test_annotation_without_a_rule_declaration_is_kept(self):
+        src = ("import com.tngtech.archunit.junit.ArchTest;\nclass T {\n"
+               "  @ArchTest\n  void check(JavaClasses c) { noClasses().should().dependOnClassesThat().haveNameMatching(\"x\").check(c); }\n}\n")
+        rs = self.rules(src, "T.java")
+        self.assertEqual(len(rs), 1)
+        self.assertEqual(rs[0]["status"], "ENFORCED WITHOUT REASON")
 
     def test_python_docstring_fitness(self):
         src = ('def test_cooldown_writer_is_unique():\n    """\n    @fitness\n'
