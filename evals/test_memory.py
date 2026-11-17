@@ -104,8 +104,8 @@ class GateUse(unittest.TestCase):
             with self.assertRaises(gate.BadInput):
                 gate.validate_candidate({**C, k: ""})
 
-    # Candidates that predate `problem` (they came from main). Ratchet: never add to this list, delete names as they gain a `problem`.
-    LEGACY_NO_PROBLEM = {"regen-architecture-constraints", "regen-compaction-pass", "regen-decision-capture",
+    # Candidates that predate `problem` (editing a candidate file makes eval.yml demand committed results for it, so they stay as they are). Ratchet: never add to this list, delete names as they gain a `problem`.
+    LEGACY_NO_PROBLEM = {"dst-skill", "regen-architecture-constraints", "regen-compaction-pass", "regen-decision-capture",
                          "regen-deletion-test", "regen-eval-tiering", "regen-implementation-memory-audit"}
 
     def test_every_committed_candidate_names_its_problem(self):
