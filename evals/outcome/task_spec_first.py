@@ -9,6 +9,10 @@ suite is red. Four of the six are choices a model rarely guesses (limit of 3 wit
 "snoozes", completed reminders return False, minutes clamped to 60 with ValueError at 0); two are the common default
 (count from now) and a return value, so a no-skill agent is not stuck at zero.
 
+History: v1 (smoke, 1 run per arm, discarded) showed two task faults: the scripted user matched words in the agent's own restatement of
+the task ("minutes", "return"), so it handed out answers nobody asked for, and the skill arm stopped after writing the spec (the skill
+says "hand off"), so its score was 0 for the wrong reason. v2 (this file) answers only question sentences and nudges a spec-only stop.
+
 Design choice: every arm is asked to interview first, so the comparison is the skill's interview against a plain model's
 interview (and the length-matched control), not "interview vs never ask". The skill and control arms are told to use the
 skill (so it loads); the none arm gets the same prompt without that sentence.
@@ -113,25 +117,36 @@ ANSWERS = [
      'The snooze count must survive save/load: store it under the JSON key "snoozes". A saved file without that key means 0.'),
     ("r4", r"complet|already done|\bdone\b|finished|marked",
      "Snoozing a completed reminder does nothing and returns False (no exception)."),
-    ("r5", r"minutes|duration|how long|range|negative|zero|upper|too (long|large|big)|maximum|clamp|bounds|invalid|validat|\bmin\b|\bmax\b",
+    ("r5", r"(range|negative|zero|upper|lower|maximum|minimum|too (long|large|big|small)|clamp|bounds|invalid|validat|edge cases?).{0,60}(minutes|duration|snooze|value)|"
+           r"(minutes|duration|snooze (time|length)).{0,60}(range|negative|zero|upper|maximum|minimum|too (long|large|big)|clamp|bounds|invalid|validat|edge cases?)|how (long|far) (can|may|should)",
      "`minutes` above 60 is clamped to 60. Zero or negative `minutes` raises ValueError and changes nothing."),
     ("r6", r"return|result|what (should|does) (it|the function) (give|return)|response|output",
      "On success return the new due datetime."),
 ]
+BUILT = re.compile(r"tests? (all )?pass|passed|\bOK\b|all \d+ tests|\bbuilt\b|implemented|added `?snooze", re.I)
+NUDGE = "The spec is agreed. Do not hand off: build it now, in this session, with tests in tests/test_snooze.py."
 ACCEPT = re.compile(r"(accept|approv|sign off|lock)\w*( this| the| my)? spec|spec (is )?(ok|good|accepted|ready)|ok to (build|proceed)|shall i (lock|accept|build|proceed)|ready to build|"
                     r"(look|looks) (right|good|correct)\??$|do you (accept|approve|confirm)", re.I | re.M)
 MAX_TURNS = 16
 
 
+def questions(text):
+    """The sentences of a message that ask something (outside code blocks): context and option text restating the task is not a question."""
+    t = re.sub(r"```.*?```", "", text, flags=re.S)
+    return [x for x in re.split(r"(?<=[?.!])\s+|\n+", t) if "?" in x]
+
+
 def answers(text):
-    """The decisions the agent's message asks about -> the user's reply lines, in a fixed order."""
-    q = re.sub(r"```.*?```", "", text, flags=re.S)
+    """The decisions the agent's questions ask about -> the user's reply lines, in a fixed order."""
+    q = " ".join(questions(text))
     return [a for _, p, a in ANSWERS if re.search(p, q, re.I)]
 
 
 def user(turn, text):
-    if turn >= MAX_TURNS or not re.search(r"\?", text):
+    if turn >= MAX_TURNS:
         return None
+    if "?" not in text:   # nothing asked: either finished, or stopped after writing the spec (the skill says "hand off"; this task builds here)
+        return NUDGE if re.search(r"\bspec\b|specs/", text, re.I) and not BUILT.search(text) else None
     if ACCEPT.search(text):
         return "Accepted. Build it now, in this session, with tests in tests/test_snooze.py."
     got = answers(text)
