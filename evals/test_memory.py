@@ -104,6 +104,20 @@ class GateUse(unittest.TestCase):
             with self.assertRaises(gate.BadInput):
                 gate.validate_candidate({**C, k: ""})
 
+    def test_every_committed_candidate_names_its_problem(self):
+        import glob
+        for p in glob.glob(os.path.join(HERE, "candidates", "*.json")):
+            c = json.load(open(p))
+            self.assertTrue(c.get("problem"), os.path.basename(p) + " needs `problem` or the attempts ledger is never consulted")
+            self.assertEqual(gate.validate_candidate({**c, "id": os.path.basename(p)[:-5]}, p) and 0, 0)
+
+    def test_predicted_is_taken_from_the_candidate(self):
+        v, f = gate.decide(self.cand, self.good, self.hist)
+        row = json.loads(mem.ledger_line({**self.cand, "predicted": "gain 3+, no loss"}, self.good, v, f, "m/x", "2026-01-02"))
+        self.assertEqual(row["predicted"], "gain 3+, no loss")
+        self.assertIn("dev gain >=", json.loads(mem.ledger_line(self.cand, self.good, v, f, "m/x", "2026-01-02"))["predicted"])
+        with self.assertRaises(gate.BadInput): gate.validate_candidate({**C, "predicted": ""})
+
     def test_ledger_row_is_a_valid_append(self):
         v, f = gate.decide(self.cand, self.good, self.hist)
         line = mem.ledger_line(self.cand, self.good, v, f, gate.model_of(self.good), "2026-01-02")

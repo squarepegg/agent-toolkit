@@ -107,7 +107,8 @@ class Graders(unittest.TestCase):
     def test_spec_first_each_decision_is_needed(self):
         """dropping any one behaviour from the reference loses exactly that decision (no check is vacuous or shared)"""
         import task_spec_first as S
-        cuts = {"r2_limit": ("    if reminder.snoozes >= MAX_SNOOZES:\n        raise SnoozeLimit(f\"reminder {reminder.id} was already snoozed {MAX_SNOOZES} times\")\n", ""),
+        cuts = {"r1_from_now": ("now + timedelta(minutes=min(minutes, MAX_MINUTES))", "reminder.due + timedelta(minutes=min(minutes, MAX_MINUTES))"),
+                "r2_limit": ("    if reminder.snoozes >= MAX_SNOOZES:\n        raise SnoozeLimit(f\"reminder {reminder.id} was already snoozed {MAX_SNOOZES} times\")\n", ""),
                 "r3_persist": ('"done": self.done, "snoozes": self.snoozes}', '"done": self.done}'),
                 "r4_done": ("    if reminder.done:\n        return False\n", ""),
                 "r5_bounds": ("min(minutes, MAX_MINUTES)", "minutes"),

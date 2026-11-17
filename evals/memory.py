@@ -104,7 +104,7 @@ def render_history(rows):
 def ledger_line(c, res, verdict, f, model, date):
     """The ledger row a finished gate run would append (printed by gate.py; a human reviews and appends it)."""
     row = {"id": c["id"], "date": date, "skill": c["skill"], "problem": c.get("problem") or "UNSET", "change": c["claim"],
-           "rationale": c["source"], "predicted": f"dev gain >= {c.get('min_gain', 2)}", "observed":
+           "rationale": c["source"], "predicted": c.get("predicted") or f"dev gain >= {c.get('min_gain', 2)}", "observed":
            f"dev {f['dev_without']}/{f['dev_n']} -> {f['dev_with']}/{f['dev_n']}, heldout {f['heldout_without']} -> {f['heldout_with']}, cost x{f['cost_ratio']}",
            "verdict": verdict, "model": model, "matched": "yes" if verdict == "ADOPT" else "no", "cost_usd": round(f["cost_without"] + f["cost_with"], 4),
            "retry_because": c.get("retry_because")}

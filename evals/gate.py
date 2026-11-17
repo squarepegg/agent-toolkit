@@ -25,7 +25,7 @@ from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULTS = {"min_gain": 2, "ceiling": 0.9, "regress_by": 2, "max_cost_ratio": 1.5, "max_unfinished": 0.1}
-KEYS = {"id", "source", "claim", "skill", "samples", "fetch", "with_path", "problem", "retry_because", *DEFAULTS}
+KEYS = {"id", "source", "claim", "skill", "samples", "fetch", "with_path", "problem", "retry_because", "predicted", *DEFAULTS}
 
 
 class BadInput(Exception):
@@ -50,7 +50,7 @@ def validate_candidate(c, filename=None):
         raise BadInput("candidate file name must be <id>.json")
     if not isinstance(c.get("samples", 3), int) or c.get("samples", 3) < 1:
         raise BadInput("samples must be a positive integer")
-    for k in ("problem", "retry_because"):
+    for k in ("problem", "retry_because", "predicted"):
         if k in c and (not isinstance(c[k], str) or not c[k].strip()):
             raise BadInput(f"{k} must be a non-empty string")
     for k in DEFAULTS:

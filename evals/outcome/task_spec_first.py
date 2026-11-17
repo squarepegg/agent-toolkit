@@ -11,7 +11,9 @@ suite is red. Four of the six are choices a model rarely guesses (limit of 3 wit
 
 History: v1 (smoke, 1 run per arm, discarded) showed two task faults: the scripted user matched words in the agent's own restatement of
 the task ("minutes", "return"), so it handed out answers nobody asked for, and the skill arm stopped after writing the spec (the skill
-says "hand off"), so its score was 0 for the wrong reason. v2 (this file) answers only question sentences and nudges a spec-only stop.
+says "hand off"), so its score was 0 for the wrong reason. v2 answers only question sentences and nudges a spec-only stop. v2's smoke then showed r5 and r6 failing for agents that did what
+they were told, because they measured from the reminder's own due time (r1's business): v3 (this file) checks the clamp and the return
+value independently of the base of the new due time.
 
 Design choice: every arm is asked to interview first, so the comparison is the skill's interview against a plain model's
 interview (and the length-matched control), not "interview vs never ask". The skill and control arms are told to use the
@@ -219,8 +221,9 @@ def r4():
 
 
 def r5():
-    r = fresh(); m.snooze(r, 120, NOW)
-    if r.due != NOW + timedelta(minutes=60):
+    big, cap = fresh(), fresh()
+    m.snooze(big, 120, NOW); m.snooze(cap, 60, NOW)
+    if big.due != cap.due or big.due == DUE:   # clamped to 60, whatever the base of the new due time is (that is r1's business)
         return False
     for bad in (0, -5):
         r = fresh(); before = r.due
@@ -236,7 +239,8 @@ def r5():
 
 def r6():
     r = fresh()
-    return m.snooze(r, 10, NOW) == NOW + timedelta(minutes=10)
+    got = m.snooze(r, 10, NOW)
+    return isinstance(got, datetime) and got == r.due and got != DUE
 
 
 for name, fn in (("r1_from_now", r1), ("r2_limit", r2), ("r3_persist", r3), ("r4_done", r4), ("r5_bounds", r5), ("r6_returns", r6)):

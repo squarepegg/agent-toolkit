@@ -103,7 +103,7 @@ deterministic `evals/gate.py` on it. See the top-level README.
 `evals/memory/attempts.jsonl` is the append-only ledger of every skill/harness edit tried: recurring `problem`, `rationale`,
 `predicted` and `observed` outcome, `model`, `verdict`, and `retry_because` when it re-tries a corner. `gate.py` and
 `run_candidate.py` read it (idea from *Self-Improvement Memory Enables Continual Recursive Self-Improvement*, arXiv 2611.18856).
-Set `problem` (and a `predicted` outcome in the ledger row) on a new candidate. Rule: a third attempt on the same
+Set `problem` and `predicted` (what you expect, before the run) on a new candidate; every committed candidate must name its `problem` (checked in `test_memory.py`). Rule: a third attempt on the same
 (skill, problem, model) after 2 informative failures is a `REPEAT` unless it states `retry_because`; `run_candidate.py` refuses it before spending tokens (exit 3).
 Another model is new evidence, so it does not match. Experiment failures (unsound grader, confounded, invalid model) do not count.
 `python3 evals/memory.py --check` validates the ledger and that `memory/REPORT.md` (backtest over real history, prediction calibration) is current.

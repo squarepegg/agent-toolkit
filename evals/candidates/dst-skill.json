@@ -3,6 +3,7 @@
  "source": "skills/dst (this repo)",
  "claim": "Loading skills/dst makes a default model answer the dst probes correctly more often than no skill",
  "skill": "dst",
+ "problem": "dst-skill-probe-gain",
  "samples": 3,
  "min_gain": 2
 }
