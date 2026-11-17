@@ -1,0 +1,6 @@
+# TEST SCAFFOLDING: the shipped config that ConfigConstraintsTest reads directly (never resolved).
+offers:
+  vendor:
+    timeout-ms: ${VENDOR_TIMEOUT_MS:200}
+    pool-idle-timeout-ms: ${VENDOR_POOL_IDLE_TIMEOUT_MS:30000}
+    max-connection-retries: ${VENDOR_MAX_CONNECTION_RETRIES:1}

@@ -1,0 +1,14 @@
+{
+ "decision-trailer": {
+  "pass": "A `Decision: docs/decisions/0004-title.md` trailer in the commit message; records default to docs/decisions.",
+  "fail": "Put the ADR URL in the PR title and store it in the wiki."
+ },
+ "decision-sections": {
+  "pass": "Context, Options considered, Decision, Rejected alternatives, Assumptions and What would make this wrong; at most 60 lines.",
+  "fail": "Context, Decision and Consequences, as long as needed."
+ },
+ "decision-supersede": {
+  "pass": "Never edit the accepted decision. Write a new record with Status: Accepted, supersedes NNNN, and mark the old one Superseded by NNNN.",
+  "fail": "Edit the old record's Decision section to the new choice."
+ }
+}

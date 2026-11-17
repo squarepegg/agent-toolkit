@@ -1,0 +1,45 @@
+[
+ {
+  "id": "tier-rewrite-label",
+  "q": "In eval-tiering, what label does a test get when its requirement would survive a rewrite but its harness would not?",
+  "expect": [
+   [
+    "durable intent"
+   ],
+   [
+    "ephemeral harness"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "tier-verify-drafts",
+  "q": "Where does eval-tiering put drafted tests, and how does it check that each draft actually catches bugs?",
+  "expect": [
+   [
+    "docs/phoenix/proposals"
+   ],
+   [
+    "mutant",
+    "mutation"
+   ],
+   [
+    "worktree"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "tier-list-tests",
+  "q": "Which script inventories a module's tests in eval-tiering, and which flag finds tests anywhere that import a given module?",
+  "expect": [
+   [
+    "list_tests.py"
+   ],
+   [
+    "--for"
+   ]
+  ],
+  "split": "heldout"
+ }
+]

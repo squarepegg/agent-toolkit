@@ -1,0 +1,14 @@
+{
+ "tier-rewrite-label": {
+  "pass": "It counts as durable intent, ephemeral harness: keep it and flag it for promotion to a boundary test.",
+  "fail": "It is just a flaky test; delete it."
+ },
+ "tier-verify-drafts": {
+  "pass": "Drafts go in docs/phoenix/proposals/<date>-<slug>/. In a throwaway git worktree it plants mutants with mutate.py; each draft must kill at least one mutant.",
+  "fail": "Drop them into src/test and check that coverage rises."
+ },
+ "tier-list-tests": {
+  "pass": "Run scripts/list_tests.py . --for <main-path>.",
+  "fail": "Grep the test directory for the class name."
+ }
+}

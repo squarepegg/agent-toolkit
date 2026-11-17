@@ -1,0 +1,15 @@
+merge-ready: no (1 confirmed blocker/major, 1 to validate)
+finder passes: 2 (tier T3 needs 2)
+
+## Confirmed
+- [blocker] a.py:2 drops data | evidence (code): except: pass
+- [minor] a.py:7 minor thing | evidence (code): except: pass | fix: rename
+
+## Needs validation
+- [major] a.py:3 maybe slow | settle by: try on prod copy
+
+## Rejected (1)
+- a.py:3 null deref | refuted: guarded at b.py:1
+
+## Not reviewed
+- generated code

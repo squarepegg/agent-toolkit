@@ -19,6 +19,10 @@ Engine and skeletons: `templates/kotlin/` (see its README for JUnit 5, kotest an
 in `templates/python/dst.py`. For a long local sweep, use `scripts/seed-sweep.sh`. The `reference/` directory holds the
 Antithesis vocabulary and the model-vs-real checklist.
 
+Design background: Unmesh Joshi, [Deterministic Simulation Testing](https://martinfowler.com/articles/deterministic-simulation-testing.html)
+(martinfowler.com, 2026-11-17), which draws on the FoundationDB and TigerBeetle simulators. Steps 1, 3, 5 and 7 use
+its points on seams, gray failures, durability, history checking and static determinism rules.
+
 **If the repo already has an engine**, use it in a test-only task; don't fork shared fixtures. Some features here are
 **template v1 only**: `SIM_SEED_START`, `corpusSeeds`, `requiredSometimesIds`, `greedyCoverSeeds`, the `rarest
 sometimes` line, seed-tagged wrapping of non-`always` failures, and `SimulationEngineSelfTest`. Port the ones you need
@@ -49,7 +53,7 @@ v1 and have none of them.
 - [ ] 4  Op generator built for discovery (rare states targeted by declared `sometimes`)
 - [ ] 5  Properties: always (named after formal invariants) / sometimes / oracle / quiescent end state
 - [ ] 6  Mode-named tests: regression guard / known bug #N / mutant catch / accepted / seed sweep
-- [ ] 7  Determinism verified (replay check on), failure output has seed + trace
+- [ ] 7  Determinism verified (replay check on, static ban on clock/RNG/threads), failure output has seed + trace + fault schedule
 - [ ] 8  Conformance test of every model against real infrastructure (coverage-chosen seeds, per-op timeouts)
 - [ ] 9  Every property mutation-checked (break → see it fail → restore)
 - [ ] 10 CI tiers wired (Gradle forwards SIM_* and makes them task inputs)
@@ -72,6 +76,11 @@ Choose something else when:
 | the risk is in the infrastructure (sizes, timeouts, config, DB semantics) | a real-infra test (Testcontainers, `@RestateTest`); a model can't see it |
 | the whole system, unmodified, under network and node faults | Antithesis itself, or Jepsen-style real clusters |
 | a durable-execution handler (Restate, Temporal) whose logic sits inline in runtime calls | **both**: DST over a model of the runtime for the decision logic under kills and retries, **plus** conformance and real-infra tests for the runtime semantics. Neither one alone is enough |
+
+**Retrofit cost.** DST is cheap when time, executor, I/O and randomness already sit behind constructor seams, and
+expensive when `Instant.now()`, thread pools or static clients are baked in. Count the seams you would have to add
+before committing. Only the SUT and the sim need to be deterministic. Production adapters behind a seam (real clock,
+real executor, sockets) may use threads freely.
 
 If a TLA+/Lean model exists, DST is how you connect it to the code. Name the invariants the same, and turn each
 counterexample into a deterministic test.
@@ -97,7 +106,9 @@ Work through `reference/real-vs-modelled-checklist.md`. In short:
 - **Write the two tables** in the suite KDoc or README:
   - real/modelled per component, with the abstractions;
   - **physical limits**: sizes, timeouts, quotas, future-timestamp guards, cardinalities, retention, clock source and
-    resolution. Mark each one modelled, not modelled, or not applicable.
+    resolution, and threading. The sim runs inline, so races between production threads are invisible to it: list
+    them under "not covered", or reach them with phase splitting (step 3). Mark each one modelled, not modelled, or
+    not applicable.
 
   A limit you don't model is invisible. One engine's pipeline model had no sizes, and production hit the database's
   `Batch too large` error with a batch just over its limit.
@@ -118,11 +129,28 @@ Work through `reference/real-vs-modelled-checklist.md`. In short:
   - **phase splitting:** expose `plan`/`read` and `apply`/`write` as separate steps, and interleave other ops between
     them (for example a `readAndPlan` step and an `executePlannedWrites` step);
   - **re-entrant hooks inside dependency calls:** a hook that runs *during* `delegate.read()` lets another op land
-    mid-call (the skeleton's `FaultInjectingStore.onInsideRead`; one engine's `onInsideLookupHook`);
-  - **queues** with an explicit, seed-chosen drain order (FIFO, LIFO, or `shuffled`).
+    mid-call (the skeleton's `FaultInjectingStore.onInsideRead`);
+  - **queues** with an explicit, seed-chosen drain order (FIFO, LIFO, or `shuffled`). Order queued items by
+    `(dueTime, sequenceNumber)` with a counter you increment yourself, never by hash or identity order.
 - **Faults are ops.** Put each one in the generator with a seed-chosen rate: failure before a write, partial write,
   timeout then late success, retry or replay, kill between journal steps, duplicate delivery, clock step, eviction.
   Wrap the dependency (real or model) in one fault wrapper, so the sim and the conformance test share the schedule.
+- **Degrade, don't only fail.** Production faults are mostly gray. Beyond clean failure, model:
+  - latency as a virtual-time delay: a call completes N ms later, so a timeout can fire first;
+  - response lost after the effect applied: the caller sees a timeout, the write happened (the asymmetric case of
+    "timeout then late success");
+  - a process pause that resumes with stale state and no sense of elapsed time (GC, CPU throttling). This is what
+    breaks leases, heartbeats and TTLs;
+  - for multi-node SUTs, loss and delay per direction and per link, not only whole-node isolation.
+
+  Pair persistent faults with a periodic heal op, so a run does not sit in one permanent partition. The quiescent
+  check (step 5) heals everything.
+- **Storage durability**, only if the SUT owns a WAL, journal or local file. Model a file as two byte arrays:
+  `visible` (written) and `durable` (synced). A write updates `visible`, `sync` copies it to `durable`, and a crash
+  resets `visible` to `durable`. Put crash points between write and sync, and let `sync` fail
+  (an fsync failure leaves page-cache state unreliable: Rebello et al., USENIX ATC '20). An invariant may call a
+  write durable only after its sync completed. For a third-party store you can't run, use the durable-execution
+  bullet below.
 - **Aim faults at labelled points**, not ordinals. "Kill at the k-th await" silently retargets when production adds an
   await. Name the points ("kill after `run(\"send-positive\")`") and declare a `sometimes` per label, so a point that
   disappears trips the vacuity gate instead of quietly changing the test.
@@ -139,7 +167,7 @@ Work through `reference/real-vs-modelled-checklist.md`. In short:
 
 ## 4. Build the generator for discovery
 
-Seed count is not the lever (the reference engine: 150 → 2,500 / 10,000 seeds, nothing new). These are:
+Seed count is not the lever (one engine: 150 → 2,500 / 10,000 seeds, nothing new). These are:
 
 - **Richer ops and pools.** Cover every public operation, plus admin and delete paths. Use small key pools, so ops
   collide, and timestamp pools with **ties**. Use unique values, so a stale answer is detectable.
@@ -155,8 +183,9 @@ Seed count is not the lever (the reference engine: 150 → 2,500 / 10,000 seeds,
   `scripts/seed-sweep.sh`.
 - **A seed corpus.** Keep every seed that once failed or that alone reaches a rare `sometimes`, and run it on every
   PR (`corpusSeeds`). This is a cheap stand-in for coverage-guided seeds.
-- **Formal traces.** Replay every TLA+ counterexample and mutant as a deterministic test. Use model-checker
-  reachability probes as `sometimes` targets.
+- **Formal traces and published anomalies.** Replay every TLA+ counterexample and mutant as a deterministic test.
+  Use model-checker reachability probes as `sometimes` targets. An anomaly drawn in a paper or book (a stale read
+  after an acknowledged write, say) becomes a pinned scenario test with explicit delays and faults.
 
 ## 5. Properties
 
@@ -176,8 +205,14 @@ Seed count is not the lever (the reference engine: 150 → 2,500 / 10,000 seeds,
 - **Oracles.** Prefer, in order:
   1. **differential:** shipped code against a simpler variant on the same ops. For example, guarded skip against
      always-write must reach identical states, or a memo against TTL 0 must return identical results.
-  2. **reference model:** a tiny "truth" structure, such as the latest committed value per key.
-  3. **hand-written expectations** only in deterministic scenario tests.
+  2. **reference model:** a tiny "truth" structure, such as the latest committed value per key. It breaks down once
+     ops overlap (phase splitting, hooks), because "latest" is no longer defined. Use 3 there.
+  3. **client-visible history check** (Jepsen style), for a store, register or queue whose contract is
+     linearizability or similar: log `invoke` and `ok` / `fail` / `info` per op and run a checker over the history
+     (Knossos, Porcupine, or a small per-key search). A timeout or exception is `info` (may or may not have
+     applied), never `fail`. Check per key and keep histories short, since checking is exponential. The template
+     has no history recorder; write one in test code.
+  4. **hand-written expectations** only in deterministic scenario tests.
 - **Quiescent end state.** Drain every queue, stop faults, then check convergence: replicas, caches and stores all
   agree. (This plays the role of Antithesis' `eventually_` / `finally_` commands.)
 
@@ -195,9 +230,8 @@ One mode per test, and the name starts with it. Use the helpers in `templates/ko
 | accepted | `accepted - <trade-off>` | a documented trade-off, citing the KDoc or ADR | the trade-off changes |
 | seed sweep | `seed sweep - <scope>, <N> seeds` | `runSuite(...)` | any seed violates an invariant, the replay differs, or a `sometimes` is never reached |
 
-Don't use `bug catch`. In one engine that name covered unfixed bugs (1, 3, 8), fixed ones (9–14) and mutants (7),
-so a green run hid three known-broken behaviours. When a known-bug test is fixed, it becomes a regression guard
-(one engine's bug catch 5 was correctly renamed once it was fixed).
+Don't use `bug catch`. In one engine that name covered unfixed bugs, fixed ones and mutants,
+so a green run hid three known-broken behaviours. When a known-bug test is fixed, it becomes a regression guard.
 
 ## 7. Determinism
 
@@ -206,9 +240,18 @@ so a green run hid three known-broken behaviours. When a known-bug test is fixed
 - Turn the replay check off only with `nonReplayableReason` (e.g. a dependency's own unseedable RNG), and keep a
   replayable sibling suite.
 - Reproduce with `SIM_SEED=<n>` or `-Dsim.seed=<n>`. Sweep with `SIM_SEEDS=<count>` and `SIM_SEED_START=<first>`.
-  Failures print the seed, step, virtual time and the last 200 recorded steps. `recordStep` every op and every fault.
+  Failures print the seed, step, virtual time, the last 200 recorded steps and the fault schedule. `recordStep` every
+  op and `recordFault` every injected fault: the fault list is separate, so a long run's trace ring doesn't evict the
+  fault that mattered. The tick-stamped trace plus fault schedule is usually enough to see the interleaving without
+  a debugger, and is good input for an LLM triaging the failure.
 - The replay runs in the same JVM, so it catches leaked state and wall-clock use. It does not catch differences
   between JVMs or platforms. Avoid iteration over `HashSet`s of objects that have no stable `hashCode`.
+- **Static guard.** Replay only catches nondeterminism on paths a seed reaches. Add a build-time rule over the SUT's
+  packages that bans `System.currentTimeMillis`/`nanoTime`, `Instant.now`, `Random.Default`, `ThreadLocalRandom`,
+  `UUID.randomUUID`, `Thread`, `Executors`, `CompletableFuture.*Async` and iteration over identity-hashed sets and
+  maps. Tools: ArchUnit, Konsist or detekt `ForbiddenMethodCall` (Python: ruff `banned-api`). Allowlist the one
+  production-wiring file that supplies the real defaults for the seams (step 2: seams default to production
+  behaviour), or the rule fires on every constructor. The templates don't ship this rule.
 
 ## 8. Conformance: required for every hand-written model
 
@@ -257,7 +300,7 @@ this way (template README, `SimulationEngineSelfTest`).
 
 | Tier | Seeds | Budget | Contents |
 |---|---|---|---|
-| PR (smoke, no Docker) | 150 per suite, plus `corpusSeeds` | about 5 s per suite; the whole sim tier in seconds (the reference engine: 4 classes, about 2.3 s) | sweeps, scenario tests, mutant catches, known-bug pins |
+| PR (smoke, no Docker) | 150 per suite, plus `corpusSeeds` | about 5 s per suite; the whole sim tier in seconds (one engine: 4 classes, about 2.3 s) | sweeps, scenario tests, mutant catches, known-bug pins |
 | nightly / manual | 2,000–10,000+, chunked | minutes | the same suites, run through `scripts/seed-sweep.sh` |
 | real-infra (Docker) | 5–10 sampled seeds | under 10 min | conformance tests |
 

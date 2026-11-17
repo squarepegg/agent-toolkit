@@ -1,0 +1,14 @@
+{
+ "ima-lesson-forms": {
+  "pass": "Only three: stated: \"<quote>\" (<source>), inferred: <claim> (basis: ...), or unknown.",
+  "fail": "A short free-text summary of the likely reason."
+ },
+ "ima-guard-states": {
+  "pass": "pinned, mentioned, or none.",
+  "fail": "covered, partially covered, or uncovered."
+ },
+ "ima-status": {
+  "pass": "scar: guarded, scar: unguarded, unknown, do not remove (the default when in doubt), or incidental.",
+  "fail": "keep, remove, or investigate."
+ }
+}

@@ -304,6 +304,7 @@ fun interpret(
                 pod.invalidate(op.key) // force this Get to reach the store
                 val before = truth[op.key]
                 var fired = false
+                sim.recordFault("pod=${op.pod} read of ${op.key} races a put of ${op.value}")
                 store.onInsideRead = {
                     fired = true
                     putEverywhere(op.key, op.value)
@@ -323,6 +324,7 @@ fun interpret(
             is Op.GetWithReadFailure -> {
                 val pod = pods[op.pod]
                 pod.invalidate(op.key)
+                sim.recordFault("pod=${op.pod} read of ${op.key} times out")
                 store.failNextRead = true
                 val res = pod.get(op.key)
                 sim.always("FailureSurfaced", res.isFailure)

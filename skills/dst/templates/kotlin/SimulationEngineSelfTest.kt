@@ -5,6 +5,7 @@ package dst
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test
 
 class SimulationEngineSelfTest {
@@ -73,6 +74,22 @@ class SimulationEngineSelfTest {
         msg shouldContain "[Inv] violated on seed=3"
         msg shouldContain "SIM_SEED=3"
         msg shouldContain "op-one"
+    }
+
+    @Test
+    fun `fault schedule survives trace ring eviction`() {
+        val msg =
+            shouldThrow<AssertionError> {
+                run { sim ->
+                    sim.recordStep("op-early")
+                    sim.recordFault("isolate athens")
+                    repeat(SimulationContext.DEFAULT_TRACE_CAPACITY + 5) { sim.recordStep("filler-$it") }
+                    sim.always("Inv", sim.seed != 3L)
+                    sim.sometimes("a", true).toString()
+                }
+            }.message!!
+        msg shouldNotContain "op-early"
+        msg shouldContain "isolate athens"
     }
 
     @Test

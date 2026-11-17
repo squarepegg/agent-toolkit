@@ -23,3 +23,25 @@ jobs:
         run: uv run --no-project --python ${{ matrix.python }} scripts/test_skill_tools.py
       - name: harness-ab tooling (split losslessness, dst_lint planted bugs, graders, verdict rule)
         run: uv run --no-project --python ${{ matrix.python }} evals/harness-ab/test_harness_ab.py
+      - name: dst probes (graders both ways, answerable from the skill) and Python template
+        run: |
+          uv run --no-project --python ${{ matrix.python }} skills/dst/tests/test_probes.py
+          uv run --no-project --python ${{ matrix.python }} skills/dst/tests/test_python_template.py
+          uv run --no-project --python ${{ matrix.python }} skills/dst/tests/test_seed_sweep.py
+      - name: code-review (unit tests, planted-defect corpus, mutation check)
+        run: |
+          for t in skills/code-review/tests/*_unit_test.py skills/code-review/tests/planted_bugs.py; do uv run --no-project --python ${{ matrix.python }} "$t" || exit 1; done
+      - name: regen (script fixtures, structure, hygiene)
+        run: |
+          for t in skills/regen/tests/test_*.py; do uv run --no-project --python ${{ matrix.python }} "$t" || exit 1; done
+  kotlin-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: dst Kotlin templates (engine self-tests, skeleton sweep, mutant catches; docker-tagged conformance excluded)
+        run: bash skills/dst/tests/run_kotlin.sh
+      - name: regen Kotlin examples (compiled against stub production classes; ArchUnit rules, config and wire-contract examples run)
+        run: bash skills/regen/tests/run_kotlin.sh

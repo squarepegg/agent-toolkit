@@ -1,0 +1,58 @@
+[
+ {
+  "id": "del-dimensions",
+  "q": "The deletion-test skill scores a component on several dimensions. Name them and the score scale.",
+  "expect": [
+   [
+    "comprehension"
+   ],
+   [
+    "isolation"
+   ],
+   [
+    "mutation ownership"
+   ],
+   [
+    "contract"
+   ],
+   [
+    "0–3",
+    "0-3",
+    "0 to 3"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "del-verdicts",
+  "q": "What are the three verdict labels the deletion-test skill returns about a component's size?",
+  "expect": [
+   [
+    "grain too coarse"
+   ],
+   [
+    "grain too fine"
+   ],
+   [
+    "about right"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "del-dread",
+  "q": "Besides the scores, what deletion dread ratings does the deletion-test skill use?",
+  "expect": [
+   [
+    "trivial"
+   ],
+   [
+    "mild inconvenience"
+   ],
+   [
+    "existential"
+   ]
+  ],
+  "split": "heldout"
+ }
+]

@@ -1,1 +1,7 @@
-{"refs": ["property-tests-from-examples", "correctness-first-design"]}
+{"pins": ["Real production classes.", "A hand-written model needs a conformance test", "Never leave broken behaviour asserted", "Every property is mutation-checked", "about 150 seeds", "Don't use `bug catch`", "SIM_SEED=<n>", "source tripwire", "Aim faults at labelled points", "Quiescent end state", "prod reachability",
+          "**Retrofit cost.**", "(dueTime, sequenceNumber)", "Degrade, don't only fail", "periodic heal op", "**Storage durability**", "`visible` (written)",
+          "client-visible history check", "A timeout or exception is `info`", "**Static guard.**", "`recordFault`",
+          "martinfowler.com/articles/deterministic-simulation-testing.html"],
+ "max_chars": 28000,
+ "refs": ["property-tests-from-examples", "correctness-first-design"],
+ "forbid": ["reference engine", "Scylla", "CleverTap", "Singular", "Copilot", "Fortis"]}
