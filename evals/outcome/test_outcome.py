@@ -15,7 +15,7 @@ sys.path.insert(0, HERE)
 import registry as R  # noqa: E402
 import verdict as V  # noqa: E402
 
-GRADED_HERE = ["property-tests", "correctness-first"]   # dst and doubt graders: evals/harness-ab/test_harness_ab.py
+GRADED_HERE = ["property-tests", "correctness-first", "spec-first"]   # dst and doubt graders: evals/harness-ab/test_harness_ab.py
 
 
 def _graded(task_id, which):
@@ -91,6 +91,76 @@ class Graders(unittest.TestCase):
         self.assertEqual(score("reference"), len(C.MUT_NAMES))
         self.assertEqual(score("untouched"), 0)
         self.assertEqual(score("naive"), 1)
+
+    def test_spec_first_scores(self):
+        """decision score: the reference honours all six decisions, the naive snooze only the common default, the untouched repo none"""
+        import task_spec_first as S
+        cfg = S.PREREG["score"]
+
+        def score(which):
+            return V.run_score({"finished": True, "checks": _graded("spec-first", which)}, cfg)
+        self.assertEqual(score("reference"), len(S.DECISIONS))
+        self.assertEqual(score("untouched"), 0)
+        self.assertEqual(score("naive"), 1)
+        self.assertEqual({k: v for k, v in _graded("spec-first", "naive").items() if k in S.DECISIONS}, {**dict.fromkeys(S.DECISIONS, False), "r1_from_now": True})
+
+    def test_spec_first_each_decision_is_needed(self):
+        """dropping any one behaviour from the reference loses exactly that decision (no check is vacuous or shared)"""
+        import task_spec_first as S
+        cuts = {"r2_limit": ("    if reminder.snoozes >= MAX_SNOOZES:\n        raise SnoozeLimit(f\"reminder {reminder.id} was already snoozed {MAX_SNOOZES} times\")\n", ""),
+                "r3_persist": ('"done": self.done, "snoozes": self.snoozes}', '"done": self.done}'),
+                "r4_done": ("    if reminder.done:\n        return False\n", ""),
+                "r5_bounds": ("min(minutes, MAX_MINUTES)", "minutes"),
+                "r6_returns": ("    return reminder.due\n", "")}
+        for name, (old, new) in cuts.items():
+            self.assertEqual(S.REFERENCE.count(old), 1, name)
+            d = tempfile.mkdtemp(prefix="sf-cut-")
+            try:
+                r = os.path.join(d, "repo"); os.makedirs(r); S.setup(r); S.write_solution(r, "reference")
+                with open(os.path.join(r, "reminders.py"), "w") as f:
+                    f.write(S.REFERENCE.replace(old, new))
+                got = S._behaviours(r)
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+            self.assertEqual([k for k, v in got.items() if not v], [name], name)
+
+    def test_spec_first_edited_existing_tests_or_red_suite_scores_zero(self):
+        import task_spec_first as S
+        for what in ("edit", "red"):
+            d = tempfile.mkdtemp(prefix="sf-gate-")
+            try:
+                r = os.path.join(d, "repo"); os.makedirs(r); S.setup(r); S.write_solution(r, "reference")
+                if what == "edit":
+                    with open(os.path.join(r, "tests", "test_reminders.py"), "a") as f:
+                        f.write("\n# edited\n")
+                else:
+                    with open(os.path.join(r, "tests", "test_red.py"), "w") as f:
+                        f.write("import unittest\n\n\nclass Red(unittest.TestCase):\n    def test_red(self):\n        self.fail('x')\n")
+                c = S.grade(r, "", "", [])[0]
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+            self.assertEqual(V.run_score({"finished": True, "checks": c}, S.PREREG["score"]), 0, what)
+
+    def test_spec_first_scripted_user_answers_only_what_is_asked(self):
+        import task_spec_first as S
+        a = S.answers("How many times may a reminder be snoozed?")
+        self.assertEqual(len(a), 1); self.assertIn("SnoozeLimit", a[0])
+        a = S.answers("Should snoozed state survive a restart? And is there a maximum number of minutes?")
+        self.assertEqual(sorted(x.split()[0] for x in a), ["The", "`minutes`"])
+        self.assertEqual(S.answers("Anything else I should know?"), [])
+        self.assertEqual(S.answers("```\nsnooze persist limit\n```"), [], "code blocks are not questions")
+        self.assertIsNone(S.user(1, "Done. Snooze is built and tested."), "no question: the scripted user ends the session")
+        self.assertIsNone(S.user(S.MAX_TURNS, "What is the limit?"), "turn cap")
+        self.assertIn("Accepted", S.user(2, "Here is the spec. Do you accept this spec?"))
+        self.assertIn("best judgment", S.user(1, "Which colour should the CLI use?"))
+        # a decision the agent never asks about is never revealed: no free credit for a lucky guess at an atypical choice
+        for q in ("What should snooze do for a typical user?", "Shall I write the tests first?"):
+            self.assertEqual(S.answers(q), [], q)
+
+    def test_spec_first_prompts(self):
+        import task_spec_first as S
+        self.assertNotIn("skill", S.PROMPT_NONE.lower())
+        self.assertTrue(S.PROMPT.startswith("Use the spec-first skill.") and S.PROMPT.endswith(S.PROMPT_NONE))
 
     def test_correctness_first_mutants_are_real(self):
         """each mutant behaves differently from the real store on some operation sequence (no equivalent mutants)"""

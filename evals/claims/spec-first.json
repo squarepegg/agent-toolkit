@@ -26,6 +26,14 @@
    ]
   },
   {
+   "id": "interview-surfaces-decisions",
+   "quote": "interview only about what the code cannot answer, one decision at a time, biggest first",
+   "kind": "model",
+   "by": [
+    "spec-first"
+   ]
+  },
+  {
    "id": "interview",
    "quote": "Never ask how to build it.",
    "kind": "gap",
