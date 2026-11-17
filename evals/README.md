@@ -97,3 +97,14 @@ deterministic `evals/gate.py` on it. See the top-level README.
 - A witness proves the advice is right on a small, constructed SUT, not that it covers your system.
 - An outcome verdict holds for that model, those tasks and that n. A new model means new rows.
 - `gap` claims are unproven. They are listed, not hidden.
+
+## Attempts memory (what was tried, why, what happened)
+
+`evals/memory/attempts.jsonl` is the append-only ledger of every skill/harness edit tried: recurring `problem`, `rationale`,
+`predicted` and `observed` outcome, `model`, `verdict`, and `retry_because` when it re-tries a corner. `gate.py` and
+`run_candidate.py` read it (idea from *Self-Improvement Memory Enables Continual Recursive Self-Improvement*, arXiv 2611.18856).
+Set `problem` (and a `predicted` outcome in the ledger row) on a new candidate. Rule: a third attempt on the same
+(skill, problem, model) after 2 informative failures is a `REPEAT` unless it states `retry_because`; `run_candidate.py` refuses it before spending tokens (exit 3).
+Another model is new evidence, so it does not match. Experiment failures (unsound grader, confounded, invalid model) do not count.
+`python3 evals/memory.py --check` validates the ledger and that `memory/REPORT.md` (backtest over real history, prediction calibration) is current.
+After a gate run, append the printed ledger row. `negative-results.md` stays the human log.

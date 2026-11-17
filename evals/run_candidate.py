@@ -10,6 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import gate  # noqa: E402
+import memory as mem  # noqa: E402
 
 
 def main(argv):
@@ -25,7 +26,15 @@ def main(argv):
         gate.registered(path)
         if "--model" not in json.loads(os.environ.get("EVAL_PI_ARGS", "[]")):
             raise gate.BadInput("pin the model: EVAL_PI_ARGS='[\"--model\",\"provider/id\"]'")
-    except (gate.BadInput, ValueError, OSError) as e:
+        pa = json.loads(os.environ["EVAL_PI_ARGS"])
+        if c.get("problem"):
+            rows = mem.load()
+            fails = mem.repeat_of(rows, c["skill"], c["problem"], gate.model_of({"pi_args": pa}), c.get("retry_because"))
+            if fails:
+                print("run_candidate: REPEAT, not spending tokens. Prior informative failures on this problem and model:\n"
+                      + mem.render_history(fails) + "\nAdd `retry_because` (what is new: harder probes, another model, a changed claim) or re-architect.", file=sys.stderr)
+                return 3
+    except (gate.BadInput, mem.BadLedger, ValueError, OSError) as e:
         print(f"run_candidate: {e}", file=sys.stderr)
         return 2
     out = out or os.path.join(ROOT, "evals", "candidates", "results", f"{c['id']}.json")
