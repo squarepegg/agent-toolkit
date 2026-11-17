@@ -3,7 +3,7 @@
 The agent is asked to add `snooze(reminder, minutes, now)` to a small reminders module, to interview the user first (one
 question at a time) about anything the code cannot tell it, and then to build it. The scripted user holds six decisions the
 code cannot settle and gives each one only when the agent asks about that topic (generous keyword patterns; a question that
-matches nothing gets "use your best judgment"). Grading runs the agent's code against six hidden behaviours, one per decision:
+matches nothing gets "your call on that one; what else is still open?", so the interview can go on). Grading runs the agent's code against six hidden behaviours, one per decision:
 no model grades anything. Score = decisions the final code honours (0..6), or 0 if the existing tests were edited or the
 suite is red. Four of the six are choices a model rarely guesses (limit of 3 with SnoozeLimit, the count persisted under
 "snoozes", completed reminders return False, minutes clamped to 60 with ValueError at 0); two are the common default
@@ -13,7 +13,10 @@ History: v1 (smoke, 1 run per arm, discarded) showed two task faults: the script
 the task ("minutes", "return"), so it handed out answers nobody asked for, and the skill arm stopped after writing the spec (the skill
 says "hand off"), so its score was 0 for the wrong reason. v2 answers only question sentences and nudges a spec-only stop. v2's smoke then showed r5 and r6 failing for agents that did what
 they were told, because they measured from the reminder's own due time (r1's business): v3 (this file) checks the clamp and the return
-value independently of the base of the new due time.
+value independently of the base of the new due time. v3's n=5 run (none 3.0, skill 1.6, control 3.0, NOT_WORTH) exposed a third fault: an unmatched
+question was answered "finish without asking me again", which ended the interview; 4 of 5 skill runs were cut that way (the skill asks the
+interface question first, which matches no hidden decision), so they learned 1.2 decisions on average against 2.8 for none. v4 (this file)
+lets the interview continue. The v3 rows stay in the ledger as stale; evals/negative-results.md has the numbers.
 
 Design choice: every arm is asked to interview first, so the comparison is the skill's interview against a plain model's
 interview (and the length-matched control), not "interview vs never ask". The skill and control arms are told to use the
@@ -154,7 +157,7 @@ def user(turn, text):
     got = answers(text)
     if got:
         return " ".join(got) + " Anything else you need to know before you build?"
-    return "Go with your best judgment and finish without asking me again."
+    return "Your call on that one. What else is still open that only I can decide?"
 
 
 # --------------------------------------------------------------------------- grader

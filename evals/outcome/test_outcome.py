@@ -159,7 +159,8 @@ class Graders(unittest.TestCase):
         self.assertIsNone(S.user(1, "Done. Snooze is built and tested."), "no question: the scripted user ends the session")
         self.assertIsNone(S.user(S.MAX_TURNS, "What is the limit?"), "turn cap")
         self.assertIn("Accepted", S.user(2, "Here is the spec. Do you accept this spec?"))
-        self.assertIn("best judgment", S.user(1, "Which colour should the CLI use?"))
+        r = S.user(1, "Which colour should the CLI use?")
+        self.assertIn("What else is still open", r); self.assertNotIn("without asking", r)   # an unmatched question must not end the interview
         # a decision the agent never asks about is never revealed: no free credit for a lucky guess at an atypical choice
         for q in ("What should snooze do for a typical user?", "Shall I write the tests first?"):
             self.assertEqual(S.answers(q), [], q)
