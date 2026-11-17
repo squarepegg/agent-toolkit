@@ -68,7 +68,8 @@ def session(cwd, skill_dir, first, user, turn_timeout):
     try:
         while msg is not None:
             n += 1
-            p.stdin.write(json.dumps({"id": f"q{n}", "type": "prompt", "message": msg}) + "\n"); p.stdin.flush()
+            try: p.stdin.write(json.dumps({"id": f"q{n}", "type": "prompt", "message": msg}) + "\n"); p.stdin.flush()
+            except BrokenPipeError: finished = False; break   # the agent exited before reading: recorded as unfinished (a race the dead-agent test hit on CI)
             text, tools, t0, settled = [], [], time.time(), False
             while True:
                 try: line = lines.get(timeout=max(0.0, turn_timeout - (time.time() - t0)))
