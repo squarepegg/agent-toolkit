@@ -86,6 +86,7 @@ def repo_with(suite):
 class Split(unittest.TestCase):
     def test_every_skill_splits_losslessly_and_tamper_is_caught(self):
         for d in sorted(os.listdir(os.path.join(ROOT, "skills"))):
+            if not os.path.isfile(os.path.join(ROOT, "skills", d, "SKILL.md")): continue  # group dir (regen)
             src = os.path.join(ROOT, "skills", d); out = tempfile.mkdtemp() + "/s"
             split_skill.split(src, out, [r"^## (Hard rules|Overview)"])
             ok, msg = split_skill.check(src, out); self.assertTrue(ok, f"{d}: {msg}")
@@ -106,6 +107,7 @@ class ShippedSkills(unittest.TestCase):
         import re
         link_dir = tempfile.mkdtemp()
         for d in sorted(os.listdir(os.path.join(ROOT, "skills"))):
+            if not os.path.isfile(os.path.join(ROOT, "skills", d, "SKILL.md")): continue  # group dir (regen)
             src = os.path.join(ROOT, "skills", d); link = os.path.join(link_dir, d); os.symlink(src, link)
             text = open(os.path.join(link, "SKILL.md")).read()
             for rel in re.findall(r"`((?:reference|templates|scripts)/[\w./-]+\.(?:md|py|sh|kt|json))`", text):

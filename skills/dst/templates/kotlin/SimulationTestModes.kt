@@ -1,5 +1,5 @@
-// Deterministic simulation engine, template v1. New in the skill (the reference engine has no equivalent yet; see the
-// a related cleanup effort). Rename the package for your codebase.
+// Deterministic simulation engine, template v1. New in this skill; no upstream equivalent.
+// Rename the package for your codebase.
 package dst
 
 /**
@@ -22,7 +22,7 @@ object SimulationTestModes {
 
 /**
  * Pins CURRENT, WRONG behaviour of shipped code. [reproduces] must contain assertions that hold only while the bug
- * exists (e.g. `scylla["LEVEL"] shouldBe "40"` where the correct answer is `null`).
+ * exists (e.g. `config["LEVEL"] shouldBe "40"` where the correct answer is `null`).
  *
  * - While the bug reproduces: passes, and prints a `KNOWN BUG` line so it is visible in the test log.
  * - Once the bug stops reproducing (the block throws an AssertionError): FAILS with an instruction to flip the test

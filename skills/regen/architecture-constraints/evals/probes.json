@@ -1,0 +1,50 @@
+[
+ {
+  "id": "arch-provenance-header",
+  "q": "I'm drafting ArchUnit fitness functions with the architecture-constraints skill. Besides the rule and its reason, which header fields must each rule carry? List them briefly.",
+  "expect": [
+   [
+    "set by"
+   ],
+   [
+    "revisit when"
+   ],
+   [
+    "regeneration test"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "arch-flagged-rule",
+  "q": "Using architecture-constraints, I found a layering rule nobody can explain. Do I enforce it? What happens to it in the draft?",
+  "expect": [
+   [
+    "disabled"
+   ],
+   [
+    "flagged"
+   ],
+   [
+    "no provenance"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "arch-mutation-check",
+  "q": "When verifying a drafted architecture rule, what must the mutation break, and what must I never do if the rule already fails on today's code?",
+  "expect": [
+   [
+    "`reason` names",
+    "reason names"
+   ],
+   [
+    "weaken",
+    "loosen",
+    "relax"
+   ]
+  ],
+  "split": "heldout"
+ }
+]

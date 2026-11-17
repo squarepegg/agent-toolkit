@@ -19,6 +19,24 @@ import json, os, re, shutil, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DESC_MAX = 1024
 PUBLIC_FORBID = ["fortis", "shrimplocker", "~/.agents/brain", "brain_search", "catalog_lookup", "repo_lookup"]
+# Checked in EVERY text file under skills/ (scripts, examples, references, tests), not only SKILL.md: these identifiers
+# were scrubbed from the skills once; a copy-paste from a private repo must not bring them back.
+ALL_FILES_FORBID = PUBLIC_FORBID + ["reference engine", "scylla", "clevertap", "copilot", "nic st", "astra", "grace_", "ledger-"]
+SKIP_DIRS = {"__pycache__", ".git", "node_modules", "build", ".gradle"}
+
+
+def private_strings(root):
+    """-> failure strings for every text file under skills/ containing an ALL_FILES_FORBID string (case-insensitive)"""
+    fails = []
+    for dp, dns, fns in os.walk(os.path.join(root, "skills")):
+        dns[:] = sorted(d for d in dns if d not in SKIP_DIRS)
+        for fn in sorted(fns):
+            if fn == "golden.json": continue  # holds `forbid` lists, which name the strings on purpose
+            p = os.path.join(dp, fn)
+            try: low = open(p, encoding="utf-8").read().lower()
+            except (UnicodeDecodeError, OSError): continue  # binary
+            fails += [f"{os.path.relpath(p, root)}: private string {bad!r}" for bad in ALL_FILES_FORBID if bad in low]
+    return fails
 
 
 def frontmatter(text):
@@ -77,6 +95,7 @@ def check(root=ROOT):
             elif f"`{ref}`" not in text: fails.append(f"{d}: hand-off to `{ref}` no longer in SKILL.md")
         for bad in g.get("forbid", []):
             if bad in text: fails.append(f"{d}: forbidden text present: {bad!r}")
+    fails += private_strings(root)
     return fails
 
 
@@ -107,6 +126,7 @@ def planted(root):
         ("frontmatter: duplicate name", "also used by", lambda: _edit(root, f"skills/{other}/SKILL.md", lambda t: re.sub(r"name: .*", f"name: {name}", t, count=1))),
         ("install line missing", "no install line", lambda: _edit(root, "README.md", lambda t: re.sub(r'.*ln -s "\$PWD/skills/' + re.escape(d) + r'".*\n', "", t))),
         ("hygiene", "private string", lambda: _edit(root, sk, lambda t: t + "\nsee ~/.agents/brain/facts\n")),
+        ("hygiene: any file under skills/", "private string 'scylla'", lambda: open(os.path.join(root, f"skills/{d}/leak.md"), "w").write("see Scylla\n")),
     ]
 
 

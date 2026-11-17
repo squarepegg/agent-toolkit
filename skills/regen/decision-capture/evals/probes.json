@@ -1,0 +1,47 @@
+[
+ {
+  "id": "decision-trailer",
+  "q": "How does the decision-capture skill link a decision record to the commit, and where does the record live by default?",
+  "expect": [
+   [
+    "decision:"
+   ],
+   [
+    "docs/decisions"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "decision-sections",
+  "q": "What sections must a decision-capture record have, and how long may it be at most?",
+  "expect": [
+   [
+    "rejected alternatives"
+   ],
+   [
+    "what would make this wrong"
+   ],
+   [
+    "assumptions"
+   ],
+   [
+    "60"
+   ]
+  ],
+  "split": "dev"
+ },
+ {
+  "id": "decision-supersede",
+  "q": "An accepted decision record has been reversed. How do you update the records?",
+  "expect": [
+   [
+    "supersedes"
+   ],
+   [
+    "superseded by"
+   ]
+  ],
+  "split": "heldout"
+ }
+]

@@ -1,0 +1,38 @@
+{
+ "dst-model-conformance": {
+  "pass": "It needs a conformance test that replays the same ops against the real service, because a model that copies production logic protects the copy, not production.",
+  "fail": "Add more seeds and a unit test for the model."
+ },
+ "dst-known-bug": {
+  "pass": "Name it `known bug #123 - ...` and wrap the assertion in knownBug(issue, correctBehaviour) so it goes red when the bug is fixed.",
+  "fail": "Write a normal test and comment out the failing assertion."
+ },
+ "dst-pr-tier": {
+  "pass": "150 seeds per suite, no Docker.",
+  "fail": "10,000 seeds in a Docker container."
+ },
+ "dst-static-guard": {
+  "pass": "A build-time rule (ArchUnit or detekt) bans clock, unseeded RNG and thread APIs in the SUT packages, and it must allowlist the one production wiring file that supplies the defaults for the seams.",
+  "fail": "Run the replay check twice."
+ },
+ "dst-fault-schedule": {
+  "pass": "Call sim.recordFault(...) next to recordStep; the fault schedule is a separate list printed on failure.",
+  "fail": "Raise the trace capacity from 200 to 2000 steps."
+ },
+ "dst-mutation": {
+  "pass": "Mutation-check it: break the code, see the property fail, then restore.",
+  "fail": "Run more seeds."
+ },
+ "dst-reach": {
+  "pass": "State whether production can reach the fault and the state.",
+  "fail": "State the seed and the step number."
+ },
+ "dst-history-timeout": {
+  "pass": "Record it as info, because the operation may or may not have applied; fail would assert it did not happen.",
+  "fail": "Record it as a failed operation and retry it."
+ },
+ "dst-durability-model": {
+  "pass": "Two byte arrays: visible changes on write, durable changes only on sync; a crash resets visible to durable.",
+  "fail": "Keep one in-memory map and delete random keys on crash."
+ }
+}

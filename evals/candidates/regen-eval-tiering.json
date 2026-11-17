@@ -1,0 +1,8 @@
+{
+ "id": "regen-eval-tiering",
+ "source": "skills/regen/eval-tiering (this repo)",
+ "claim": "Loading skills/regen/eval-tiering makes a default model answer the eval-tiering probes correctly more often than no skill",
+ "skill": "regen/eval-tiering",
+ "samples": 3,
+ "min_gain": 2
+}

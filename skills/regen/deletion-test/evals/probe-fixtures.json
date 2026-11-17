@@ -1,0 +1,14 @@
+{
+ "del-dimensions": {
+  "pass": "Comprehension, isolation, mutation ownership and contract, each scored 0–3 with evidence.",
+  "fail": "Cohesion, coupling and size, each rated out of 10."
+ },
+ "del-verdicts": {
+  "pass": "grain too coarse, grain too fine, or about right.",
+  "fail": "Too big, too small, or fine."
+ },
+ "del-dread": {
+  "pass": "trivial, mild inconvenience, or existential.",
+  "fail": "low, medium or high dread."
+ }
+}

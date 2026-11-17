@@ -11,7 +11,7 @@
 #   seed-sweep.sh --total 10000 --chunk 1000 -- \
 #     ./gradlew :my-module:test --tests 'com.example.sim.*' --rerun
 #
-# Engines without SIM_SEED_START (e.g. the reference engine's original testFixtures engine) ignore the start offset and rerun
+# Engines without SIM_SEED_START (e.g. an older engine) ignore the start offset and rerun
 # seeds 1..chunk every time. For those, use one run: SIM_SEEDS=<n up to 10000> <test command>, and raise the
 # suite's @Timeout if needed.
 set -euo pipefail

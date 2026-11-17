@@ -18,7 +18,9 @@ import kotlin.random.Random
  *   whose guard is conditional with a declared [sometimes] on that guard, so a vacuous `always` is caught.
  * - [sometimes]: reachability / anti-vacuity obligation. IDs must be declared up front; the runner fails the
  *   suite if a declared ID is never reached across all seeds.
- * - [recordStep]: appends to a bounded trace ring printed on failure. Record every operation and fault.
+ * - [recordStep]: appends to a bounded trace ring printed on failure. Record every operation.
+ * - [recordFault]: records each injected fault in a separate list, also printed on failure. The ring evicts old
+ *   steps on a long run; the fault that set up the failure may be one of them.
  */
 class SimulationContext(
     val seed: Long,
@@ -33,6 +35,7 @@ class SimulationContext(
     val rng: Random = Random(seed)
     private val traceRing = ArrayDeque<String>(traceCapacity)
     private val reachedSometimes = mutableSetOf<String>()
+    private val faultSchedule = ArrayDeque<String>()
 
     var transcriptHash: Long = FNV_OFFSET_BASIS xor seed
         private set
@@ -50,6 +53,17 @@ class SimulationContext(
         mixTranscript(clock.observationNanos())
         mixTranscript(description)
     }
+
+    /** Call next to [recordStep] for every injected fault, e.g. `recordFault("read timeout on k1")`. */
+    fun recordFault(description: String) {
+        if (faultSchedule.size == MAX_FAULTS_KEPT) {
+            faultSchedule.removeFirst()
+        }
+        faultSchedule.addLast("#$stepCount @${clock.nowMillis()}ms: $description")
+        mixTranscript("fault:$description")
+    }
+
+    fun faultScheduleSnapshot(): List<String> = faultSchedule.toList()
 
     fun always(
         id: String,
@@ -95,6 +109,10 @@ class SimulationContext(
             }
             appendLine("Recent trace (${traceRing.size} steps):")
             traceRing.forEach { appendLine("  $it") }
+            if (faultSchedule.isNotEmpty()) {
+                appendLine("Fault schedule (${faultSchedule.size} faults, oldest first):")
+                faultSchedule.forEach { appendLine("  $it") }
+            }
         }
 
     fun nextInt(until: Int): Int = rng.nextInt(until).also { mixTranscript(it.toLong()) }
@@ -150,6 +168,7 @@ class SimulationContext(
 
     companion object {
         const val DEFAULT_TRACE_CAPACITY = 200
+        const val MAX_FAULTS_KEPT = 1000
         private const val FNV_OFFSET_BASIS = -0x340d631b7bdddcdbL
         private const val FNV_PRIME = 0x100000001b3L
     }

@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""git commit-msg hook: check Decision: trailers resolve to a decision record.
+
+- Every `Decision: <path-or-id>` trailer must resolve to a file in the working tree or the
+  index. Ids: 0007 (numbered) or 2026-05-11 (dated).
+- If the commit adds a new decision record but carries no trailer for it, print the
+  trailer to add.
+
+Warns by default. PHOENIX_DECISION_STRICT=1 makes problems fail the commit.
+Skips merge, fixup, squash and revert messages. Stdlib only.
+"""
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+DIRS = ["docs/decisions", "docs/adr", "doc/adr", "docs/architecture/decisions", "adr"]
+
+
+def git(*args):
+    p = subprocess.run(["git", *args], capture_output=True, text=True)
+    return p.stdout if p.returncode == 0 else ""
+
+
+def main() -> int:
+    msg = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+    body = "\n".join(ln for ln in msg.splitlines() if not ln.startswith("#"))
+    if re.match(r"^(Merge|fixup!|squash!|amend!|Revert)", body.strip()):
+        return 0
+    root = Path(git("rev-parse", "--show-toplevel").strip() or ".")
+    staged = set(git("diff", "--cached", "--name-only").split())
+    added = [f for f in git("diff", "--cached", "--name-only", "--diff-filter=A").split()
+             if any(f.startswith(d + "/") for d in DIRS) and f.endswith(".md")]
+    refs = re.findall(r"(?im)^Decision:\s*(\S+)\s*$", body)
+    problems, linked = [], set()
+
+    for ref in refs:
+        cands = []
+        if "/" in ref or ref.endswith(".md"):
+            cands = [ref]
+        else:
+            for d in DIRS:
+                cands += [str(p.relative_to(root)) for p in (root / d).glob(f"{ref}-*.md")]
+                cands += [f for f in staged if f.startswith(f"{d}/{ref}-")]
+        hit = next((c for c in cands if (root / c).exists() or c in staged), None)
+        if hit:
+            linked.add(hit)
+            if subprocess.run(["git", "check-ignore", "-q", hit]).returncode == 0:
+                problems.append(f"Decision: {ref} points at {hit}, which is gitignored; "
+                                "the link will not resolve for anyone else")
+        else:
+            problems.append(f"Decision: {ref} does not resolve to a record in {', '.join(DIRS)}")
+
+    for f in added:
+        if f not in linked:
+            problems.append(f"new decision record {f} is not linked. Add trailer:\n    Decision: {f}")
+
+    if problems:
+        strict = os.environ.get("PHOENIX_DECISION_STRICT") == "1"
+        print(("error" if strict else "warning") + " (decision-capture):", file=sys.stderr)
+        for p in problems:
+            print(f"  - {p}", file=sys.stderr)
+        return 1 if strict else 0
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
