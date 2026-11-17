@@ -9,6 +9,8 @@ Not a library. Copy it next to your tests (pytest assumed) and keep it in step w
         for i in range(60):
             op = sim.choose(["get", "put", "advance"])
             sim.record_step(f"op[{i}] {op}")
+            if sim.chance(5):
+                sim.record_fault(f"read timeout on op[{i}]")   # own list: survives trace eviction, printed on failure
             ...
             sim.always("NoStaleRead", got == truth.get(k), lambda: f"got={got} truth={truth.get(k)}")
             sim.sometimes("cache_hit", hit)
@@ -29,6 +31,7 @@ from typing import Callable, Iterable, Sequence, TypeVar
 
 T = TypeVar("T")
 NANOS_PER_MILLI = 1_000_000
+MAX_FAULTS_KEPT = 1000
 _FNV_OFFSET, _FNV_PRIME, _MASK = 0xCBF29CE484222325, 0x100000001B3, (1 << 64) - 1
 
 
@@ -67,6 +70,7 @@ class SimulationContext:
         self.reached: set[str] = set()
         self._rng = random.Random(seed)  # never use the module-level random, time.time() or uuid4() in a scenario
         self._trace: deque[str] = deque(maxlen=trace_capacity)
+        self._faults: deque[str] = deque(maxlen=MAX_FAULTS_KEPT)
         self.transcript_hash, self.step_count = (_FNV_OFFSET ^ seed) & _MASK, 0
 
     def _mix(self, value: object) -> None:
@@ -80,12 +84,23 @@ class SimulationContext:
         self._trace.append(f"#{self.step_count} @{self.clock.now_millis()}ms: {description}")
         self._mix((self.clock.observation_nanos(), description))
 
+    def record_fault(self, description: str) -> None:
+        """Call next to record_step for every injected fault. Kept in its own list: the trace ring evicts old steps."""
+        self._faults.append(f"#{self.step_count} @{self.clock.now_millis()}ms: {description}")
+        self._mix(f"fault:{description}")
+
+    def fault_schedule_snapshot(self) -> list[str]:
+        return list(self._faults)
+
     def failure_report(self, headline: str, detail: str = "") -> str:
         lines = [f"{headline} on seed={self.seed} at step={self.step_count}",
                  f"Virtual time: {self.clock.now_millis()}ms", f"Reproduce single seed with env: SIM_SEED={self.seed}"]
         if detail:
             lines.append(f"Detail: {detail}")
-        return "\n".join(lines + [f"Recent trace ({len(self._trace)} steps):", *("  " + t for t in self._trace)])
+        lines += [f"Recent trace ({len(self._trace)} steps):", *("  " + t for t in self._trace)]
+        if self._faults:
+            lines += [f"Fault schedule ({len(self._faults)} faults, oldest first):", *("  " + f for f in self._faults)]
+        return "\n".join(lines)
 
     def always(self, id: str, condition: bool, detail: Callable[[], str] = lambda: "") -> None:
         """Passes if never evaluated (Antithesis' alwaysOrUnreachable): pair conditional ones with a sometimes."""

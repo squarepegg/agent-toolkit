@@ -38,6 +38,35 @@
   ]
  },
  {
+  "id": "dst-static-guard",
+  "q": "Besides the seeded replay check, what build-time guard does the DST skill add over the code under test, and what must that guard allowlist? Two lines.",
+  "expect": [
+   [
+    "ban",
+    "forbid",
+    "lint",
+    "archunit",
+    "konsist",
+    "detekt"
+   ],
+   [
+    "wiring",
+    "production default",
+    "defaults for the seam",
+    "seam"
+   ]
+  ]
+ },
+ {
+  "id": "dst-fault-schedule",
+  "q": "In the DST skill's Kotlin engine, a long run's failure report shows only the last 200 trace steps, so the injected fault that caused the failure has scrolled out. Which engine method keeps faults in a separate list? Give the method name.",
+  "expect": [
+   [
+    "recordfault"
+   ]
+  ]
+ },
+ {
   "id": "dst-mutation",
   "split": "heldout",
   "q": "Before I claim a DST property holds, what must I do to that property? One line.",
@@ -61,6 +90,39 @@
     "can production reach",
     "whether production",
     "whether prod"
+   ]
+  ]
+ },
+ {
+  "id": "dst-history-timeout",
+  "split": "heldout",
+  "q": "In a DST history check (Jepsen style) for a key-value store, an operation ended in a client timeout. Which outcome type does the skill say to record it as, and why not 'fail'? One line.",
+  "expect": [
+   [
+    "info"
+   ],
+   [
+    "may or may not",
+    "might have",
+    "may have",
+    "indeterminate",
+    "unknown whether"
+   ]
+  ]
+ },
+ {
+  "id": "dst-durability-model",
+  "split": "heldout",
+  "q": "How does the DST skill model a file for a SUT that owns a write-ahead log, so that a crash loses unsynced writes? Name the two byte buffers and when each changes. Two lines.",
+  "expect": [
+   [
+    "visible"
+   ],
+   [
+    "durable"
+   ],
+   [
+    "sync"
    ]
   ]
  }

@@ -41,7 +41,9 @@ ln -s "$PWD/skills/code-review"        ~/.agents/skills/code-review
 macOS `sandbox-exec`, and for the Kotlin defaults JDK 21 and Gradle. Model gateway: `SDLC_GATEWAY_URL`
 (see the skill's README). Unit tests: `python3 skills/adversarial-sdlc/tests/<name>_unit_test.py`;
 some need `ast-grep` on `PATH`.
-`skills/code-review` needs only Python 3.9+: `python3 skills/code-review/tests/<name>_unit_test.py`, then `python3 skills/code-review/tests/planted_bugs.py` (mutation check).
+`skills/code-review` needs only Python 3.9+: `python3 skills/code-review/tests/<name>_unit_test.py`, then `python3 skills/code-review/tests/planted_bugs.py` (mutation check) (CI runs both).
+`skills/regen` needs Python 3.9+ and git: `python3 skills/regen/tests/test_<name>.py` (script fixtures, structure, hygiene; CI runs all).
+`skills/dst` free gates (CI runs all): `skills/dst/tests/test_probes.py` (probe graders both ways, every `expect` group answerable from the skill), `test_python_template.py`, `test_seed_sweep.py`, and `scripts/check_skills.py` pins, budget and forbid list from `skills/dst/tests/golden.json`. The Kotlin templates are compiled and run (engine self-tests, skeleton sweep, mutant catches) by `bash skills/dst/tests/run_kotlin.sh` (JDK 21, downloads Gradle and dependencies; the `@Tag("docker")` conformance test is compiled but not run). The live probe A/B for the new dst text is `evals/candidates/dst-skill.json` (label the PR `eval`).
 `skills/tests-as-data` needs only Python 3.9+ (and git for `guard.py --base`): `python3 skills/tests-as-data/tests/test_tests_as_data.py` (CI runs it).
 `skills/spec-first` needs only Python 3.9+, git and bash: `python3 skills/spec-first/tests/test_spec_first.py`, then
 `python3 skills/spec-first/tests/planted_bugs.py` (CI runs both); `evals/run_evals.py` drives a live `pi` session and costs tokens.

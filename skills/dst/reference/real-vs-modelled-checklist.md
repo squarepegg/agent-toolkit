@@ -39,8 +39,8 @@ Go through these in order; the first "yes" decides.
 
 | Limit | Example | Modelled? |
 |---|---|---|
-| request / batch / row / value size | a database's maximum batch size (for example Scylla's `batch_size_fail_threshold_in_kb`, 1,024 KiB) | |
-| future-timestamp guard | a database's future-timestamp restriction (for example Scylla's `restrict_future_timestamp`) | |
+| request / batch / row / value size | a database's batch-size fail threshold (often about 1 MiB by default) | |
+| future-timestamp guard | a database setting that rejects writes timestamped too far ahead | |
 | timeouts (client, server, journal step) | a CLI or client request timeout | |
 | quotas and rate limits | vendor API 429s | |
 | fan-out / collection cardinality | a cap on group size | |
