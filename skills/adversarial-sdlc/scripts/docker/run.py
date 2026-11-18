@@ -323,25 +323,85 @@ def role_cpus(role: bool) -> str:
     return os.environ.get("SDLC_DOCKER_CPUS", "4")
 
 
-ROLE_ENV_DENY = re.compile(r"(_TOKEN|_KEY|_SECRET|_PASSWORD|_PASSWD|_CREDENTIALS?)$|^SDLC_NOTIFY_CMD$")
+# run-role.sh resolves runner commands, executable/extension paths and sandbox settings on
+# the host, before launch. The role only needs these data settings and the sdlc-check
+# broker settings (REMOTE_WS is its already-mounted disposable workspace).
+ROLE_ENV_ALLOW = frozenset({
+    "SDLC_ROUND", "SDLC_REMOTE_WS", "SDLC_REMOTE_START_TIMEOUT", "SDLC_REMOTE_TIMEOUT",
+    *{f"SDLC_{setting}_{role}" for setting in ("MODEL", "THINKING", "TOOLS")
+      for role in ("spec", "design", "judge", "tests", "build", "attack", "referee", "plant", "consolidate")},
+})
+# These are constructed by the backend, identify host paths, or control the trusted
+# entry protocol. Even explicit passenv must not override them.
+ENV_PROTECTED = frozenset({
+    "SDLC_PROJECT", "SDLC_DOCKER_ENTRY", "SDLC_DOCKER_PASSENV", "SDLC_IN_SANDBOX",
+    "SDLC_ENTRY_OK", "SDLC_ENTRY_STATUS", "SDLC_ENTRY_FSIZE_MB", "GRADLE_HOME",
+})
 
 
 def forwarded_env(fixed: dict[str, str], role: bool) -> dict[str, str]:
-    """Host variables passed into the container beyond the fixed ones. Code under test (--net local|none) gets only
-    what SDLC_DOCKER_PASSENV names: a blanket SDLC_*/GRADLE_* forward would hand it whatever credentials live
-    there (GRADLE_ENTERPRISE_ACCESS_KEY, ...). Model roles run the harness, which reads its SDLC_* settings; they get
-    those, but no GRADLE_* and no SDLC_* name that looks like a credential or a command (a role can send anything it
-    reads to the model provider)."""
+    """Pass only supported role data settings or an operator's explicit passenv names.
+
+    Unknown names never gain access from a prefix or a credential-name heuristic.
+    SDLC_DOCKER_PASSENV is an intentional operator escape hatch, including for
+    credentials when required; fixed environment and entry controls stay protected.
+    """
     passenv = set(os.environ.get("SDLC_DOCKER_PASSENV", "").split())
     out: dict[str, str] = {}
     for k, v in os.environ.items():
-        if k in fixed or k in ("SDLC_PROJECT", "SDLC_DOCKER_ENTRY", "SDLC_DOCKER_PASSENV", "SDLC_IN_SANDBOX",
-                               "GRADLE_HOME"):  # GRADLE_HOME is a host path
+        if k in fixed or k in ENV_PROTECTED:
             continue
-        # ast-grep-ignore: env-forward-by-prefix -- roles need the harness's settings; credential-like names are excluded
-        if k in passenv or (role and k.startswith("SDLC_") and not ROLE_ENV_DENY.search(k)):
+        if k in passenv or (role and k in ROLE_ENV_ALLOW):
             out[k] = v
     return out
+
+
+PROXY_ENV = {
+    "HTTP_PROXY": "http://sdlc-egress:8080", "HTTPS_PROXY": "http://sdlc-egress:8080",
+    "http_proxy": "http://sdlc-egress:8080", "https_proxy": "http://sdlc-egress:8080",
+    "NO_PROXY": "sdlc-egress,localhost,127.0.0.1", "no_proxy": "sdlc-egress,localhost,127.0.0.1",
+}
+BOOTSTRAP_ENV = frozenset({
+    "PATH", "PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP", "PYTHONINSPECT", "PYTHONWARNINGS",
+    "NODE_OPTIONS", "BASH_ENV", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS",
+    "LD_PRELOAD", "LD_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH",
+    "SDLC_DOCKER_ID_GATE", "SDLC_DOCKER_ID_ROLE", "SDLC_DOCKER_ID_EGRESS", "SDLC_GATEWAY_ENV",
+})
+
+
+def container_env(plan: dict, ids: dict[str, str], role: bool, gateway_url: str | None = None) -> dict[str, str]:
+    """Compose the launch environment, protecting backend values and named runtime controls.
+
+    JVM options belong to the backend: neither ambient JAVA_TOOL_OPTIONS nor passenv
+    extends them. Provider aliases cannot override the explicitly named supported-runtime
+    controls. PASSENV remains an operator trust boundary for other plugin-specific settings.
+    """
+    env = {
+        "HOME": C_HOME, "TMPDIR": C_TMP, "LANG": "C.UTF-8",
+        "GRADLE_USER_HOME": f"{C_HOME}/.gradle", "GRADLE_RO_DEP_CACHE": "/opt/gradle-ro/caches",
+        "PI_CODING_AGENT_DIR": f"{C_HOME}/.pi/agent",
+        "GATE_JAVA_HOME": "/usr/lib/jvm/sdlc-java-21",
+        "JAVA_TOOL_OPTIONS": f"-Djava.io.tmpdir={C_TMP} -Duser.home={C_HOME}",
+        "SDLC_DOCKER_ENTRY": json.dumps(plan),
+    }
+    env.update({f"SDLC_DOCKER_ID_{k.upper()}": v for k, v in ids.items()})
+    reserved = set(env) | ENV_PROTECTED | ROLE_ENV_ALLOW | BOOTSTRAP_ENV | set(PROXY_ENV) | {"SDLC_GATEWAY_URL"}
+    if role:
+        if gateway_url is None:
+            raise ValueError("role environment requires its rewritten gateway URL")
+        aliases = os.environ.get("SDLC_GATEWAY_ENV", "").split()
+        for name in aliases:
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) or name in reserved:
+                die(f"invalid or reserved SDLC_GATEWAY_ENV name: {name!r}", 2)
+        env.update(PROXY_ENV)
+        env["SDLC_GATEWAY_URL"] = gateway_url
+        env.update({name: gateway_url for name in aliases})
+    # Include absent bootstrap/proxy names in the protected map so passenv cannot
+    # activate runtime controls; regular operator variables remain available.
+    protected = dict.fromkeys(reserved - ROLE_ENV_ALLOW, "")
+    protected.update(env)
+    env.update(forwarded_env(protected, role))
+    return env
 
 
 def launch(run: Run, ids: dict[str, str], mounts: dict[str, str], net: str, role: bool,
@@ -358,29 +418,10 @@ def launch(run: Run, ids: dict[str, str], mounts: dict[str, str], net: str, role
         if (Path(p) / "gradle/wrapper/gradle-wrapper.properties").is_file():
             plan["gradle_dists"] = True
 
-    env = {
-        "HOME": C_HOME, "TMPDIR": C_TMP, "LANG": "C.UTF-8",
-        "GRADLE_USER_HOME": f"{C_HOME}/.gradle", "GRADLE_RO_DEP_CACHE": "/opt/gradle-ro/caches",
-        "PI_CODING_AGENT_DIR": f"{C_HOME}/.pi/agent",
-        # gate.config pins its JDK via macOS java_home, else GATE_JAVA_HOME: the image has JDK 21 only.
-        "GATE_JAVA_HOME": "/usr/lib/jvm/sdlc-java-21",
-        "JAVA_TOOL_OPTIONS": f"-Djava.io.tmpdir={C_TMP} -Duser.home={C_HOME} "
-                             + os.environ.get("JAVA_TOOL_OPTIONS", ""),
-        "SDLC_DOCKER_ENTRY": json.dumps(plan),
-    }
-    env.update(forwarded_env(env, role))
-    for k, v in ids.items():
-        env[f"SDLC_DOCKER_ID_{k.upper()}"] = v
-
     netargs = ["--network", "none"]
+    upstream, url = gateway_upstream() if role else (None, None)
+    env = container_env(plan, ids, role, url)
     if role:
-        upstream, url = gateway_upstream()
-        proxy = "http://sdlc-egress:8080"
-        # The provider extension may read the gateway URL under its own name: SDLC_GATEWAY_ENV lists the names.
-        env.update({name: url for name in ["SDLC_GATEWAY_URL", *os.environ.get("SDLC_GATEWAY_ENV", "").split()]})
-        env.update({"HTTP_PROXY": proxy, "HTTPS_PROXY": proxy,
-                    "http_proxy": proxy, "https_proxy": proxy,
-                    "NO_PROXY": "sdlc-egress,localhost,127.0.0.1", "no_proxy": "sdlc-egress,localhost,127.0.0.1"})
         start_egress(run, ids["egress"], upstream)
         netargs = ["--network", run.network]
 

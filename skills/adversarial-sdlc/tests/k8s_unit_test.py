@@ -323,22 +323,119 @@ _dspec.loader.exec_module(dockerrun)
 
 
 class DockerEnv(unittest.TestCase):
-    def test_code_containers_get_only_passenv(self) -> None:
-        saved = dict(os.environ)
-        try:
-            os.environ.update({"GRADLE_ENTERPRISE_ACCESS_KEY": "secret", "SDLC_NOTIFY_CMD": "x", "MY_FLAG": "1",
-                               "SDLC_DOCKER_PASSENV": "MY_FLAG", "AWS_SECRET_ACCESS_KEY": "secret"})
-            code = dockerrun.forwarded_env({"HOME": "/home/sdlc"}, role=False)
-            self.assertEqual(code, {"MY_FLAG": "1"}, "code under test sees only explicitly passed variables")
-            os.environ.update({"SDLC_MODEL_build": "m", "SDLC_SLACK_TOKEN": "t", "SDLC_API_KEY": "k"})
-            role = dockerrun.forwarded_env({"HOME": "/home/sdlc"}, role=True)
-            self.assertIn("SDLC_MODEL_build", role, "model roles still get the harness settings")
-            for k in ("AWS_SECRET_ACCESS_KEY", "GRADLE_ENTERPRISE_ACCESS_KEY", "SDLC_NOTIFY_CMD", "SDLC_SLACK_TOKEN",
-                      "SDLC_API_KEY"):
-                self.assertNotIn(k, role, f"{k}: a role can send what it reads to the model provider")
-        finally:
-            os.environ.clear()
-            os.environ.update(saved)
+    def test_supported_role_settings_and_explicit_passenv(self) -> None:
+        from unittest.mock import patch
+        settings = {"SDLC_MODEL_build": "m", "SDLC_THINKING_attack": "high", "SDLC_TOOLS_tests": "read",
+                    "SDLC_REMOTE_WS": "/mounted/workspace", "SDLC_REMOTE_TIMEOUT": "50", "SDLC_ROUND": "2"}
+        with patch.dict(os.environ, {**settings, "MY_FLAG": "1", "SDLC_DOCKER_PASSENV": "MY_FLAG"}, clear=True):
+            self.assertEqual(dockerrun.forwarded_env({}, role=False), {"MY_FLAG": "1"})
+            self.assertEqual(dockerrun.forwarded_env({}, role=True), {**settings, "MY_FLAG": "1"})
+
+    def test_unlisted_names_never_inherit_by_prefix_or_spelling(self) -> None:
+        from unittest.mock import patch
+        # Metamorphic property: adding any unlisted host name leaves role env unchanged.
+        names = ["AWS_SECRET_ACCESS_KEY", "GRADLE_ENTERPRISE_ACCESS_KEY", "SDLC_NOTIFY_CMD",
+                 "SDLC_SLACK_TOKEN", "SDLC_API_KEY", "SDLC_PI_BIN", "SDLC_PI_EXTENSIONS",
+                 "SDLC_SANDBOX_READ", "SDLC_DOCKER_STATE", "SDLC_K8S_STATE", "SDLC_RUNNER_build",
+                 "SDLC_MODEL_unknown", "SDLC_SANDBOX", "SDLC_DOCKER_CHECKED"]
+        # Harmlessly named settings may hold secrets too; no suffix denylist can detect them.
+        names += [f"SDLC_PRIVATE_VALUE_{i}" for i in range(64)]
+        for name in names:
+            with self.subTest(name=name), patch.dict(os.environ, {name: "sensitive-host-value"}, clear=True):
+                for role in (False, True):
+                    self.assertEqual(dockerrun.forwarded_env({}, role=role), {})
+
+    def test_explicit_operator_escape_and_fixed_controls(self) -> None:
+        from unittest.mock import patch
+        protected = {"HOME", "TMPDIR", "JAVA_TOOL_OPTIONS", "SDLC_PROJECT", "SDLC_DOCKER_ENTRY",
+                     "SDLC_DOCKER_PASSENV", "SDLC_IN_SANDBOX", "SDLC_ENTRY_OK", "SDLC_ENTRY_STATUS",
+                     "GRADLE_HOME", "SDLC_ENTRY_FSIZE_MB"}
+        fixed = {"HOME": "/home/sdlc", "TMPDIR": "/tmp", "JAVA_TOOL_OPTIONS": "fixed"}
+        for role in (False, True):
+            with self.subTest(role=role), patch.dict(os.environ, {
+                **dict.fromkeys(protected, "host-value"), "SDLC_API_KEY": "explicit-secret",
+                "CUSTOM_DATA": "explicit-data", "NOT_REQUESTED": "hidden",
+                "SDLC_DOCKER_PASSENV": " ".join(sorted(protected | {"SDLC_API_KEY", "CUSTOM_DATA", "MISSING"})),
+            }, clear=True):
+                self.assertEqual(dockerrun.forwarded_env(fixed, role=role),
+                                 {"SDLC_API_KEY": "explicit-secret", "CUSTOM_DATA": "explicit-data"})
+
+    def launch_environment(self, role: bool) -> dict[str, str]:
+        """Exercise launch through its Docker create boundary, with all external calls replaced."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        result = subprocess.CompletedProcess([], 0, json.dumps({"StartedAt": "2026-01-01T00:00:00Z",
+                                                               "ExitCode": 0}), "")
+        with patch.object(dockerrun, "docker", return_value=result) as docker, \
+                patch.object(dockerrun.subprocess, "run"), \
+                patch.object(dockerrun, "pi_settings", return_value={}), \
+                patch.object(dockerrun, "gateway_upstream", return_value=("host:8080", "http://sdlc-egress:8080")), \
+                patch.object(dockerrun, "start_egress"):
+            run = SimpleNamespace(container="test-container", network="test-network", egress="test-egress")
+            self.assertEqual(dockerrun.launch(run, {"gate": "gate-id", "role": "role-id", "egress": "egress-id"},
+                                             {}, "all" if role else "none", role, ["true"]), 0)
+            create = docker.call_args_list[0].args
+            self.assertEqual(create[0], "create")
+            return dict(create[i + 1].split("=", 1) for i, arg in enumerate(create[:-1]) if arg == "-e")
+
+    def test_launch_composition_never_inherits_jvm_or_entry_controls(self) -> None:
+        from unittest.mock import patch
+        for role in (False, True):
+            with self.subTest(role=role), patch.dict(os.environ, {}, clear=True):
+                baseline = self.launch_environment(role)
+                bad = {**dict.fromkeys(baseline, "host-overwrite"),
+                       "JAVA_TOOL_OPTIONS": "-javaagent:/host/secret.jar -Dsecret=host-secret",
+                       "SDLC_ENTRY_FSIZE_MB": "0", "SDLC_ENTRY_OK": "/host/marker",
+                       "SDLC_ENTRY_STATUS": "/host/status", "SDLC_PROJECT": "/host/project",
+                       "SDLC_PRIVATE_VALUE_99": "host-secret", "SDLC_GATEWAY_URL": "http://host/secret"}
+                os.environ.update(bad)
+                os.environ["SDLC_DOCKER_PASSENV"] = " ".join(set(bad) - {"SDLC_PRIVATE_VALUE_99"})
+                self.assertEqual(self.launch_environment(role), baseline)
+                self.assertNotIn("SDLC_ENTRY_FSIZE_MB", baseline)
+                self.assertEqual(baseline["JAVA_TOOL_OPTIONS"],
+                                 "-Djava.io.tmpdir=/tmp -Duser.home=/home/sdlc")
+
+    def test_named_runtime_controls_cannot_cross_passenv_or_gateway_aliases(self) -> None:
+        from unittest.mock import patch
+        # Contract literals deliberately independent of the implementation's reserved set.
+        controls = {"PATH", "PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP", "PYTHONINSPECT", "PYTHONWARNINGS",
+                    "LD_PRELOAD", "LD_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH",
+                    "NODE_OPTIONS", "BASH_ENV", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"}
+        for name in sorted(controls):
+            for role in (False, True):
+                with self.subTest(name=name, role=role, channel="passenv"), \
+                        patch.dict(os.environ, {name: "host-startup-value", "SDLC_DOCKER_PASSENV": name}, clear=True):
+                    self.assertNotIn(name, self.launch_environment(role))
+            with self.subTest(name=name, channel="gateway-alias"), \
+                    patch.dict(os.environ, {"SDLC_GATEWAY_ENV": name}, clear=True):
+                with self.assertRaises(SystemExit) as cm:
+                    self.launch_environment(True)
+                self.assertEqual(cm.exception.code, 2)
+
+    def test_launch_provider_alias_and_role_data_survive_composition(self) -> None:
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"SDLC_GATEWAY_ENV": "PROVIDER_GATEWAY_URL other_provider_url",
+                                    "SDLC_MODEL_build": "model", "EXPLICIT": "data",
+                                    "SDLC_DOCKER_PASSENV": "EXPLICIT PROVIDER_GATEWAY_URL",
+                                    "PROVIDER_GATEWAY_URL": "http://host/secret"}, clear=True):
+            env = self.launch_environment(True)
+            self.assertEqual(env["PROVIDER_GATEWAY_URL"], "http://sdlc-egress:8080")
+            self.assertEqual(env["other_provider_url"], env["SDLC_GATEWAY_URL"])
+            self.assertEqual(env["SDLC_MODEL_build"], "model")
+            self.assertEqual(env["EXPLICIT"], "data")
+
+    def test_launch_rejects_alias_overrides_and_invalid_names(self) -> None:
+        from unittest.mock import patch
+        with patch.dict(os.environ, {}, clear=True):
+            fixed = set(self.launch_environment(True))
+        # Also refuse controls that are normally absent, and all supported role data.
+        names = fixed | dockerrun.ENV_PROTECTED | dockerrun.BOOTSTRAP_ENV | dockerrun.ROLE_ENV_ALLOW
+        names |= {"INVALID=VALUE", "BAD-NAME", "9NAME"}
+        for name in names:
+            with self.subTest(alias=name), patch.dict(os.environ, {"SDLC_GATEWAY_ENV": name}, clear=True):
+                with self.assertRaises(SystemExit) as cm:
+                    self.launch_environment(True)
+                self.assertEqual(cm.exception.code, 2)
 
 
 class KeepCopyOut(unittest.TestCase):
