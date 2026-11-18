@@ -5,7 +5,7 @@ dst:   a read-through cache whose update-during-read race leaves a stale value c
        suite gives different per-test outcomes on the buggy cache and on a fixed one.
 doubt: a migration plan that drops a column before the deploy that stops reading it (v1 breaks, rollback is gone).
 """
-import glob, os, re, subprocess, sys
+import glob, json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -120,19 +120,47 @@ def dst_user(turn, text):
     return "Go with your recommended option and finish without asking me again."
 
 
+# Run in-process with a result class instead of parsing `unittest -v`: a failure inside `self.subTest` is printed as its own
+# "FAIL: test (..) (i=3)" block with no "... FAIL" line on the parent, so a text parser reports the parent "ok" (a false
+# green on the real code, and an unkilled mutant whose only failing assertions sit in subtests).
+_RUNNER = r'''
+import io, json, sys, unittest
+class R(unittest.TextTestResult):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw); self.o = {}
+    def _set(self, test, v): self.o[test.id()] = v
+    def addSuccess(self, t): self.o.setdefault(t.id(), "ok"); super().addSuccess(t)
+    def addFailure(self, t, e): self._set(t, "FAIL"); super().addFailure(t, e)
+    def addError(self, t, e): self._set(t, "ERROR"); super().addError(t, e)
+    def addSkip(self, t, why): self.o.setdefault(t.id(), "skipped"); super().addSkip(t, why)
+    def addExpectedFailure(self, t, e): self._set(t, "expected"); super().addExpectedFailure(t, e)
+    def addUnexpectedSuccess(self, t): self._set(t, "unexpected"); super().addUnexpectedSuccess(t)
+    def addSubTest(self, t, sub, err):
+        if err is not None:
+            self._set(t, "FAIL" if issubclass(err[0], t.failureException) else "ERROR")
+        super().addSubTest(t, sub, err)
+res = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0, resultclass=R).run(
+    unittest.defaultTestLoader.discover("tests", top_level_dir="."))
+print("__OUTCOMES__" + json.dumps(res.o))
+'''
+
+
 def unittest_outcomes(r, env_extra=None, timeout=600):
-    """-> {test id: ok|FAIL|ERROR|skipped|expected failure|...} from `unittest -v`, or {'__crash__': tail}"""
+    """-> {test id: ok|FAIL|ERROR|skipped|expected|unexpected} (a failed subtest fails its test), or {'__crash__': tail} / {'__timeout__': True}"""
     env = {k: v for k, v in os.environ.items() if not k.startswith("SIM_")}
     env.update({"PYTHONPATH": r, **(env_extra or {})})
     try:
-        p = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"], cwd=r, env=env,
-                           capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run([sys.executable, "-c", _RUNNER], cwd=r, env=env, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return {"__timeout__": True}
-    out = {}
-    for m in re.finditer(r"^(\S+) \(([\w.]+)\)(?:\n.*?)?\s\.\.\.\s(ok|FAIL|ERROR|skipped.*|expected failure|unexpected success)$", p.stderr, re.M):
-        out[f"{m.group(2)}.{m.group(1)}"] = m.group(3).split(" ")[0]
-    if not out: out["__crash__"] = p.stderr[-400:]
+    marked = [x for x in p.stdout.splitlines() if x.startswith("__OUTCOMES__")]
+    try:
+        out = json.loads(marked[-1][len("__OUTCOMES__"):])
+    except (IndexError, ValueError):
+        out = {}
+    # an import error is a loader-made _FailedTest: a suite that did not load is a crash, not one failing test
+    if not out or any(k.startswith("unittest.loader._FailedTest") for k in out):
+        return {"__crash__": (p.stderr or p.stdout)[-400:]}
     return out
 
 
