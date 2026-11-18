@@ -99,13 +99,13 @@ in_c() { "$SBX" --rw "$T/sdlc-ws" --deny "$T/secret" "$@" 2>&1; }
 out="$(in_c -- bash -c "find /Users /Volumes -type f 2>/dev/null | grep -v -e '^$SKILL/' -e '^$T/sdlc-ws/' | head -3")"
 [ -z "$out" ] && ok "no host files under /Users or /Volumes except the mounted dirs (INV-1, A-7)" || bad "host files visible: $out"
 in_c -- bash -c "test ! -e '$T/secret'" > /dev/null && ok "denied paths are absent" || bad "denied path present"
-# Host environment: code under test gets none of the host's SDLC_*/GRADLE_* (credentials live there); roles keep SDLC_*.
+# Code gets no implicit host settings; roles retain only explicitly supported settings.
 n="$(GRADLE_ENTERPRISE_ACCESS_KEY=selftest-secret SDLC_SELFTEST_SETTING=s in_c --net local -- \
       bash -c 'env | grep -c -e GRADLE_ENTERPRISE_ACCESS_KEY -e SDLC_SELFTEST_SETTING' | tail -1)"
 [ "$n" = 0 ] && ok "code containers inherit no host GRADLE_*/SDLC_* variables" || bad "host variables reached code under test ($n)"
-n="$(SDLC_SELFTEST_SETTING=s GRADLE_ENTERPRISE_ACCESS_KEY=x SDLC_SELFTEST_TOKEN=t in_c --net all -- \
-      bash -c 'env | grep -c -e "^SDLC_SELFTEST_SETTING=" -e "^GRADLE_ENTERPRISE_ACCESS_KEY=" -e "^SDLC_SELFTEST_TOKEN="' | tail -1)"
-[ "$n" = 1 ] && ok "model-role containers get the harness's SDLC_* settings, no GRADLE_* and no credential-like names" \
+n="$(SDLC_MODEL_build=selftest-model SDLC_SELFTEST_SETTING=s GRADLE_ENTERPRISE_ACCESS_KEY=x SDLC_SELFTEST_TOKEN=t in_c --net all -- \
+      bash -c 'env | grep -c -e "^SDLC_MODEL_build=" -e "^SDLC_SELFTEST_SETTING=" -e "^GRADLE_ENTERPRISE_ACCESS_KEY=" -e "^SDLC_SELFTEST_TOKEN="' | tail -1)"
+[ "$n" = 1 ] && ok "model-role containers get supported settings, no implicit unknown names or credentials" \
   || bad "role container env ($n of 1)"
 # /work is world-writable in the image, so only --read-only stops this write (non-root cannot write /etc anyway).
 in_c -- bash -c 'touch /work/sdlc-x' > /dev/null && bad "rootfs writable" || ok "the root filesystem is read-only"

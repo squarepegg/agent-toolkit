@@ -213,4 +213,4 @@ def write_solution(r, which):
 
 
 TASK = {"skill": "property-tests", "prompt": PROMPT, "prompt_none": PROMPT_NONE, "setup": setup, "user": user, "grade": grade, "turn_timeout": 300,
-        "prereg": PREREG, "files": [__file__], "write_solution": write_solution}
+        "prereg": PREREG, "files": [__file__, os.path.join(os.path.dirname(HERE), "harness-ab", "tasks.py")], "write_solution": write_solution}

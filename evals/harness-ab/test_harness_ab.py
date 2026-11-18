@@ -175,6 +175,41 @@ class DstGrader(unittest.TestCase):
         self.assertEqual((bug, fix), ("FAIL", "ok"))
 
 
+class UnittestOutcomes(unittest.TestCase):
+    """The outcome graders decide kills and false alarms from these statuses; a text parser lost subtest failures."""
+    def run_tests(self, body):
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, "tests"))
+        for name in ("__init__.py", "test_x.py"):
+            open(os.path.join(d, "tests", name), "w").write("" if name == "__init__.py" else body)
+        return T.unittest_outcomes(d, timeout=60)
+
+    def test_failing_subtest_fails_its_test_even_when_siblings_pass(self):
+        out = self.run_tests("import unittest\n"
+                             "class A(unittest.TestCase):\n"
+                             "    def test_loop(self):\n"
+                             "        for i in range(4):\n"
+                             "            with self.subTest(i=i):\n"
+                             "                self.assertNotEqual(i, 2)\n"
+                             "    def test_other(self): pass\n")
+        self.assertEqual(out, {"tests.test_x.A.test_loop": "FAIL", "tests.test_x.A.test_other": "ok"})
+
+    def test_all_statuses(self):
+        out = self.run_tests("import unittest\n"
+                             "class A(unittest.TestCase):\n"
+                             "    def test_ok(self): pass\n"
+                             "    def test_fail(self): self.fail()\n"
+                             "    def test_err(self): 1/0\n"
+                             "    @unittest.skip('x')\n"
+                             "    def test_skip(self): pass\n"
+                             "    @unittest.expectedFailure\n"
+                             "    def test_xfail(self): self.fail()\n")
+        self.assertEqual({k.split(".")[-1]: v for k, v in out.items()},
+                         {"test_ok": "ok", "test_fail": "FAIL", "test_err": "ERROR", "test_skip": "skipped", "test_xfail": "expected"})
+
+    def test_import_error_is_a_crash_not_a_failing_test(self):
+        self.assertIn("__crash__", self.run_tests("import no_such_module\n"))
+
+
 class DoubtGrader(unittest.TestCase):
     def setUp(self): self.r = tempfile.mkdtemp(); T.doubt_setup(self.r)
 
