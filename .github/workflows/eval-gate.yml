@@ -19,6 +19,10 @@ jobs:
       - run: git config --global user.email ci@example.com && git config --global user.name ci
       - name: gate verdicts, registration, properties, skill_ab -> gate with a fake pi
         run: uv run --no-project --python ${{ matrix.python }} evals/test_gate.py
+      - name: attempts memory (ledger valid, repeat rule, gate REPEAT, report current)
+        run: |
+          uv run --no-project --python ${{ matrix.python }} evals/test_memory.py
+          uv run --no-project --python ${{ matrix.python }} evals/memory.py --check
       - name: scout (offline fixtures)
         run: uv run --no-project --python ${{ matrix.python }} scout/test_scout.py
       - name: scout triage (fake model, fake gh, local git remote; gate.validate_candidate on drafts)

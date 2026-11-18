@@ -1,0 +1,42 @@
+{
+ "skill": "code-review",
+ "claims": [
+  {
+   "id": "deterministic-scripts",
+   "quote": "Two scripts make the parts that should not vary deterministic",
+   "kind": "tool",
+   "by": [
+    "skills/code-review/tests/triage_unit_test.py",
+    "skills/code-review/tests/findings_unit_test.py"
+   ]
+  },
+  {
+   "id": "mutants-caught",
+   "quote": "every mutant must be caught by the unit tests",
+   "kind": "tool",
+   "by": [
+    "skills/code-review/tests/planted_bugs.py"
+   ]
+  },
+  {
+   "id": "score-computed",
+   "quote": "Recall and false positives are computed, not judged.",
+   "kind": "tool",
+   "by": [
+    "skills/code-review/tests/corpus_unit_test.py"
+   ]
+  },
+  {
+   "id": "overrule-upwards",
+   "quote": "Triage can be overruled upwards by a human, never downwards by the agent.",
+   "kind": "policy",
+   "why": "A convention about who may change the tier; there is no experiment that makes it true or false."
+  },
+  {
+   "id": "repeated-passes",
+   "quote": "a single pass finds only part of what repeated passes find",
+   "kind": "gap",
+   "why": "Needs an outcome task comparing 1 vs 2 finder passes on the planted corpus with an agent; no such task exists yet."
+  }
+ ]
+}

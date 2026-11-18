@@ -15,13 +15,17 @@ Verdicts (exit 0 = ADOPT, 1 = not adopted, 2 = bad input):
   REGRESSION    a probe, or the heldout split, lost >= regress_by correct samples
   TOO_COSTLY    gain is there, cost ratio > max_cost_ratio
   INCONCLUSIVE  more than max_unfinished of the answers timed out
+  REPEAT        would ADOPT, but the candidate's `problem` already has >= 2 informative failures on this model (evals/memory/attempts.jsonl)
+                and no `retry_because`: say what is new, or re-architect (see evals/memory.py)
 """
 import hashlib, json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import memory as mem  # noqa: E402
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULTS = {"min_gain": 2, "ceiling": 0.9, "regress_by": 2, "max_cost_ratio": 1.5, "max_unfinished": 0.1}
-KEYS = {"id", "source", "claim", "skill", "samples", "fetch", "with_path", *DEFAULTS}
+KEYS = {"id", "source", "claim", "skill", "samples", "fetch", "with_path", "problem", "retry_because", "predicted", *DEFAULTS}
 
 
 class BadInput(Exception):
@@ -46,6 +50,9 @@ def validate_candidate(c, filename=None):
         raise BadInput("candidate file name must be <id>.json")
     if not isinstance(c.get("samples", 3), int) or c.get("samples", 3) < 1:
         raise BadInput("samples must be a positive integer")
+    for k in ("problem", "retry_because", "predicted"):
+        if k in c and (not isinstance(c[k], str) or not c[k].strip()):
+            raise BadInput(f"{k} must be a non-empty string")
     for k in DEFAULTS:
         if k in c and (not isinstance(c[k], (int, float)) or isinstance(c[k], bool) or c[k] < 0):
             raise BadInput(f"{k} must be a non-negative number")
@@ -90,8 +97,13 @@ def check_results(c, res):
             raise BadInput(f"probe {pr} does not have exactly {res['samples']} samples per arm")
 
 
-def decide(c, res):
-    """Pure: candidate + results -> (verdict, facts)."""
+def model_of(res):
+    a = res.get("pi_args") or []
+    return a[a.index("--model") + 1] if "--model" in a[:-1] else None
+
+
+def decide(c, res, memory=None):
+    """Pure: candidate + results (+ the attempts ledger rows) -> (verdict, facts)."""
     p = validate_candidate(c)
     check_results(c, res)
     b, bcost, bunf = tally(res["rows"], "without")
@@ -117,6 +129,11 @@ def decide(c, res):
         return "NO_DELTA", f
     if f["cost_ratio"] > p["max_cost_ratio"]:
         return "TOO_COSTLY", f
+    if memory is not None and c.get("problem"):
+        fails = mem.repeat_of(memory, c["skill"], c["problem"], model_of(res), c.get("retry_because"))
+        if fails:
+            f["repeat_of"] = [r["id"] for r in fails]
+            return "REPEAT", f
     return "ADOPT", f
 
 
@@ -156,12 +173,18 @@ def main(argv):
         probes = os.path.join(ROOT, "skills", c["skill"], "evals", "probes.json")
         if res.get("probes_sha256") != sha256(probes):
             raise BadInput("probes.json changed since the run (sha256 mismatch): re-run")
-        verdict, f = decide(c, res)
-    except (BadInput, KeyError, TypeError, ValueError, OSError) as e:
+        memory = mem.load()
+        verdict, f = decide(c, res, memory)
+    except (mem.BadLedger, BadInput, KeyError, TypeError, ValueError, OSError) as e:
         print(f"gate: bad input: {e}", file=sys.stderr)
         return 2
     out = line(c, res, verdict, f)
     print(f"{verdict}: {c['id']}\n{json.dumps(f)}\n{out}")
+    if c.get("problem"):
+        print("prior attempts on this problem:\n" + mem.render_history(mem.prior(memory, c["skill"], c["problem"], model_of(res))))
+    else:
+        print("no `problem` in the candidate: the attempts ledger was not consulted")
+    print("ledger row (review, then append to evals/memory/attempts.jsonl):\n" + mem.ledger_line(c, res, verdict, f, model_of(res), res.get("date", "YYYY-MM-DD")))
     if md:
         with open(md, "a") as fh:
             fh.write(f"### Eval gate: `{c['id']}` -> **{verdict}**\n\n{c['claim']}\n\n| | without | with |\n|---|---|---|\n"

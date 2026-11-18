@@ -1,0 +1,49 @@
+{
+ "skill": "spec-first",
+ "claims": [
+  {
+   "id": "verdict-stricter",
+   "quote": "verdict.py is the verdict: a reviewer can make a row stricter, never looser.",
+   "kind": "tool",
+   "by": [
+    "skills/spec-first/tests/test_spec_first.py"
+   ]
+  },
+  {
+   "id": "lock",
+   "quote": "Never edit any other section (the lock catches it)",
+   "kind": "tool",
+   "by": [
+    "skills/spec-first/tests/test_spec_first.py"
+   ]
+  },
+  {
+   "id": "planted",
+   "quote": "bug must be caught by its named test",
+   "kind": "tool",
+   "by": [
+    "skills/spec-first/tests/planted_bugs.py"
+   ]
+  },
+  {
+   "id": "interview-surfaces-decisions",
+   "quote": "interview only about what the code cannot answer, one decision at a time, biggest first",
+   "kind": "model",
+   "by": [
+    "spec-first"
+   ]
+  },
+  {
+   "id": "interview",
+   "quote": "Never ask how to build it.",
+   "kind": "gap",
+   "why": "Interview behaviour; skills/spec-first/evals/run_evals.py is a live eval that does not write to the ledger."
+  },
+  {
+   "id": "fix-not-weaken",
+   "quote": "Fix each FAIL/UNSUPPORTED in code or by adding a test; never by changing a requirement or an existing test.",
+   "kind": "gap",
+   "why": "Agent behaviour; the lock and guard catch edits (tool), but no outcome task checks that an agent chooses to fix the code."
+  }
+ ]
+}

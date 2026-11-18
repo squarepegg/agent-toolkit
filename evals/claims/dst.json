@@ -1,0 +1,152 @@
+{
+ "skill": "dst",
+ "claims": [
+  {
+   "id": "real-classes",
+   "quote": "Real production classes.",
+   "kind": "witness",
+   "by": [
+    "dst-conformance-coverage"
+   ],
+   "rule": 1
+  },
+  {
+   "id": "model-needs-conformance",
+   "quote": "A hand-written model needs a conformance test",
+   "kind": "witness",
+   "by": [
+    "dst-conformance-coverage"
+   ],
+   "rule": 2
+  },
+  {
+   "id": "copy-protects-copy",
+   "quote": "A model that copies production logic protects the copy, not production.",
+   "kind": "witness",
+   "by": [
+    "dst-conformance-coverage"
+   ]
+  },
+  {
+   "id": "coverage-not-taste",
+   "quote": "Choose the sample by coverage, not taste.",
+   "kind": "witness",
+   "by": [
+    "dst-conformance-coverage"
+   ]
+  },
+  {
+   "id": "no-innocent-green",
+   "quote": "Never leave broken behaviour asserted by a green, innocent-looking test.",
+   "kind": "witness",
+   "by": [
+    "dst-known-bug-pin"
+   ],
+   "rule": 3
+  },
+  {
+   "id": "mutation-check",
+   "quote": "Every property is mutation-checked",
+   "kind": "witness",
+   "by": [
+    "dst-small-key-pool"
+   ],
+   "rule": 4
+  },
+  {
+   "id": "prod-reachability",
+   "quote": "Every finding states whether production can reach it",
+   "kind": "policy",
+   "why": "A reporting requirement, not a fact about code. The live dst task grades it (prod_reachability_stated), as a secondary check.",
+   "rule": 5
+  },
+  {
+   "id": "pr-tier-cheap",
+   "quote": "The PR tier stays cheap:",
+   "kind": "policy",
+   "why": "A cost budget. The witnesses show 150 seeds suffice once the generator is right (dst-reentrant-hook, dst-small-key-pool), but the budget itself is a choice.",
+   "rule": 6
+  },
+  {
+   "id": "reentrant-hook",
+   "quote": "re-entrant hooks inside dependency calls",
+   "kind": "witness",
+   "by": [
+    "dst-reentrant-hook"
+   ]
+  },
+  {
+   "id": "seeds-not-lever",
+   "quote": "Seed count is not the lever",
+   "kind": "witness",
+   "by": [
+    "dst-reentrant-hook",
+    "dst-small-key-pool"
+   ]
+  },
+  {
+   "id": "small-key-pools",
+   "quote": "Use small key pools, so ops collide",
+   "kind": "witness",
+   "by": [
+    "dst-small-key-pool"
+   ]
+  },
+  {
+   "id": "always-vacuous",
+   "quote": "This engine's always passes if never evaluated. When it sits inside a condition, add a sometimes on that condition.",
+   "kind": "witness",
+   "by": [
+    "dst-small-key-pool"
+   ]
+  },
+  {
+   "id": "ghost-from-env",
+   "quote": "Feed reference/ghost state from the environment, never from the model.",
+   "kind": "witness",
+   "by": [
+    "dst-ghost-from-environment"
+   ]
+  },
+  {
+   "id": "replay-check",
+   "quote": "a draw from Random.Default must trip the replay check",
+   "kind": "witness",
+   "by": [
+    "dst-replay-check"
+   ]
+  },
+  {
+   "id": "safe-envelope",
+   "quote": "An unrestricted mode, next to any \"safe envelope\".",
+   "kind": "gap",
+   "why": "No witness yet: needs an SUT with a known bug whose envelope hides a neighbouring bug."
+  },
+  {
+   "id": "tripwire",
+   "quote": "add a source tripwire",
+   "kind": "policy",
+   "why": "A hash comparison of the mirrored file; nothing to show experimentally beyond 'hash changed'."
+  },
+  {
+   "id": "real-op-timeouts",
+   "quote": "give every real op a timeout",
+   "kind": "policy",
+   "why": "About real runtimes that retry forever; no in-process experiment reproduces that."
+  },
+  {
+   "id": "kotlin-engine",
+   "quote": "Engine and skeletons: templates/kotlin/",
+   "kind": "gap",
+   "why": "SimulationEngineSelfTest.kt is not run by any workflow (no JDK/Gradle job). The Python sketch (templates/python/dst.py) is exercised by every dst witness."
+  },
+  {
+   "id": "agent-finds-race",
+   "quote": "Covers seeded op generators, a virtual clock, deterministic interleaving and fault injection",
+   "kind": "model",
+   "by": [
+    "dst"
+   ]
+  }
+ ]
+}

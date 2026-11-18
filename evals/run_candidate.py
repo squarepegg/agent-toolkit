@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run one registered candidate: check it is committed, fetch an outside skill at its pinned sha if any, then run
-scripts/skill_ab.py (both arms) into results/<id>.json. Costs model tokens. Then: python3 evals/gate.py <candidate> <results>.
+scripts/skill_ab.py (both arms) into evals/candidates/results/<id>.json (commit it: CI gates it). Costs model tokens. Then: python3 evals/gate.py <candidate> <results>.
 
   EVAL_PI_ARGS='["--model","provider/id"]' python3 evals/run_candidate.py evals/candidates/<id>.json [--out FILE]
 """
@@ -10,6 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import gate  # noqa: E402
+import memory as mem  # noqa: E402
 
 
 def main(argv):
@@ -25,10 +26,19 @@ def main(argv):
         gate.registered(path)
         if "--model" not in json.loads(os.environ.get("EVAL_PI_ARGS", "[]")):
             raise gate.BadInput("pin the model: EVAL_PI_ARGS='[\"--model\",\"provider/id\"]'")
-    except (gate.BadInput, ValueError, OSError) as e:
+        pa = json.loads(os.environ["EVAL_PI_ARGS"])
+        if c.get("problem"):
+            rows = mem.load()
+            fails = mem.repeat_of(rows, c["skill"], c["problem"], gate.model_of({"pi_args": pa}), c.get("retry_because"))
+            if fails:
+                print("run_candidate: REPEAT, not spending tokens. Prior informative failures on this problem and model:\n"
+                      + mem.render_history(fails) + "\nAdd `retry_because` (what is new: harder probes, another model, a changed claim) or re-architect.", file=sys.stderr)
+                return 3
+    except (gate.BadInput, mem.BadLedger, ValueError, OSError) as e:
         print(f"run_candidate: {e}", file=sys.stderr)
         return 2
-    out = out or os.path.join(ROOT, "results", f"{c['id']}.json")
+    out = out or os.path.join(ROOT, "evals", "candidates", "results", f"{c['id']}.json")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     cmd = [sys.executable, os.path.join(ROOT, "scripts", "skill_ab.py"), c["skill"], "--samples", str(c.get("samples", 3)), "--out", out]
     with tempfile.TemporaryDirectory() as tmp:
         if c.get("fetch"):

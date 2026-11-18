@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""Outcome verdicts from the committed ledger (free, deterministic, CI). The model runs happen on a laptop
+(evals/outcome/run.py); this file only recomputes what the ledger rows say, so a verdict can't be typed in by hand.
+
+  python3 evals/outcome/verdict.py            table of verdicts per task
+  python3 evals/outcome/verdict.py --json     same, as JSON
+
+A row counts only if its hashes match the current skill, control and task files (else it is STALE and ignored).
+A run passes when it finished and every pre-registered primary check is true.
+
+Verdicts per task (pre-registered `prereg` in the task file: n, alpha, ceiling, primary):
+  (a task whose prereg has a `score` block is compared on its mean score, 0..max, by an exact one-sided permutation
+   test instead of pass/fail with Fisher; WORTHWHILE then needs the skill's mean above both baselines, p <= alpha each)
+  NOT_RUN       no current rows
+  INCOMPLETE    some arm has fewer than n current rows
+  CEILING       the no-skill arm already passes >= ceiling: the task cannot show value; write a harder task
+  FLOOR         no arm passes a single run: the task (or its strict all-checks rule) cannot show value; recalibrate it
+  WORTHWHILE    skill beats BOTH no-skill and control: one-sided Fisher exact p <= alpha against each
+  NOT_WORTH     skill pass rate <= no-skill pass rate
+  INCONCLUSIVE  anything else (a gain, but not significant at this n, or the control arm does as well)
+"""
+import glob
+import hashlib
+import json
+import math
+import os
+import sys
+from math import comb
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, HERE)
+import registry as T  # noqa: E402
+
+ARMS = ("none", "skill", "control")
+LEDGER = os.path.join(HERE, "ledger")
+CONTROL = os.path.join(HERE, "control.md")
+
+
+def _read(p):
+    with open(p, "rb") as f:
+        return f.read()
+
+
+def _sha(items):
+    h = hashlib.sha256()
+    for rel, data in items:
+        h.update(rel.encode() + b"\0" + data + b"\0")
+    return h.hexdigest()[:16]
+
+
+def skill_files(skill):
+    base = os.path.join(ROOT, "skills", skill)
+    out = []
+    for p in sorted(glob.glob(os.path.join(base, "**", "*"), recursive=True)):
+        rel = os.path.relpath(p, base)
+        if os.path.isdir(p) or rel.split(os.sep)[0] in ("evals", "tests") or "__pycache__" in rel:
+            continue
+        out.append((rel, p))
+    return out
+
+
+def skill_hash(skill):
+    return _sha([(rel, _read(p)) for rel, p in skill_files(skill)])
+
+
+def control_hash(skill):
+    return _sha([("control.md", _read(CONTROL)), ("SKILL.md", _read(os.path.join(ROOT, "skills", skill, "SKILL.md")))])
+
+
+def task_hash(task_id):
+    t = T.TASKS[task_id]
+    return _sha([(os.path.relpath(f, ROOT), _read(f)) for f in t["files"]] + [("prereg", json.dumps(t["prereg"], sort_keys=True).encode())])
+
+
+def current_hashes(task_id):
+    s = T.TASKS[task_id]["skill"]
+    return {"skill": skill_hash(s), "control": control_hash(s), "task": task_hash(task_id)}
+
+
+def fisher_greater(a, n1, c, n2):
+    """One-sided Fisher exact p-value that arm 1 (a of n1 passes) beats arm 2 (c of n2)."""
+    k, n = a + c, n1 + n2
+    if k == 0:
+        return 1.0
+    total = comb(n, k)
+    return sum(comb(n1, x) * comb(n2, k - x) for x in range(a, min(n1, k) + 1)) / total
+
+
+def load_rows(task_id):
+    p = os.path.join(LEDGER, f"{task_id}.jsonl")
+    if not os.path.exists(p):
+        return []
+    return [json.loads(line) for line in _read(p).decode().splitlines() if line.strip()]
+
+
+def run_score(row, score_cfg):
+    """Mutation score of one run: the mutants killed, or 0 if it did not finish or a gate check failed (its tests fail
+    on the real code, or it edited the code under test)."""
+    c = row["checks"]
+    if not row.get("finished") or not all(c.get(g) is True for g in score_cfg["gate"]):
+        return 0
+    return sum(c.get(k) is True for k in score_cfg["kills"])
+
+
+def perm_p_greater(a, b):
+    """One-sided exact permutation p-value that arm a has a larger mean than arm b (integer scores): the share of the
+    ways to split the pooled scores into groups of len(a) and len(b) whose group-a sum is >= the observed sum."""
+    n1, pooled = len(a), list(a) + list(b)
+    total = sum(pooled)
+    dp = [dict() for _ in range(n1 + 1)]   # dp[j][sum] = ways to choose j scores summing to sum
+    dp[0][0] = 1
+    for x in pooled:
+        for j in range(min(n1, len(pooled)), 0, -1):
+            for ssum, ways in list(dp[j - 1].items()):
+                dp[j][ssum + x] = dp[j].get(ssum + x, 0) + ways
+    return sum(w for ssum, w in dp[n1].items() if ssum >= sum(a)) / comb(len(pooled), n1)
+
+
+def passed(row, primary):
+    return bool(row.get("finished")) and all(row["checks"].get(c) is True for c in primary)
+
+
+def model_name(args_json):
+    """'["-e","x","--model","p/m","--thinking","medium"]' -> 'p/m (thinking medium)'"""
+    try:
+        a = json.loads(args_json)
+        m = a[a.index("--model") + 1]
+        return m + (f" (thinking {a[a.index('--thinking') + 1]})" if "--thinking" in a else "")
+    except (ValueError, IndexError, TypeError):
+        return str(args_json)
+
+
+def models_in(task_id, rows=None):
+    """models with at least one current row (a verdict is per model: arms are never mixed across models)"""
+    rows = load_rows(task_id) if rows is None else rows
+    cur = current_hashes(task_id)
+    return sorted({r["model"] for r in rows if r.get("hashes") == cur})
+
+
+def verdict_all(task_id, rows=None):
+    rows = load_rows(task_id) if rows is None else rows
+    return [verdict(task_id, rows, m) for m in models_in(task_id, rows)] or [verdict(task_id, rows)]
+
+
+def verdict(task_id, rows=None, model=None):
+    t = T.TASKS[task_id]
+    pre = t["prereg"]
+    rows = load_rows(task_id) if rows is None else rows
+    cur = current_hashes(task_id)
+    fresh = [r for r in rows if r.get("hashes") == cur and (model is None or r.get("model") == model)]
+    if model is None and len({r.get("model") for r in fresh}) > 1:
+        return {"task": task_id, "skill": t["skill"], "verdict": "MIXED_MODELS", "model": None, "stale_rows": len(rows) - len(fresh),
+                "score": {a: (0, 0) for a in ARMS}, "cell": {a: "?" for a in ARMS}, "cost_usd": 0.0, "models": [],
+                "note": "rows from several models: use verdict_all / verdict(task, model=...)"}
+    by = {a: [r for r in fresh if r["arm"] == a] for a in ARMS}
+    if "score" in pre:
+        return _verdict_score(task_id, t, pre, rows, fresh, by)
+    score = {a: (sum(passed(r, pre["primary"]) for r in by[a]), len(by[a])) for a in ARMS}
+    out = {"task": task_id, "skill": t["skill"], "model": model, "score": score, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
+           "cell": {a: f"{score[a][0]}/{score[a][1]}" for a in ARMS},
+           "cost_usd": round(math.fsum(float(r.get("cost_usd") or 0) for r in fresh), 2),
+           "models": sorted({r.get("model", "?") for r in fresh})}
+    if not fresh:
+        out["verdict"] = "NOT_RUN"
+        return out
+    if any(score[a][1] < pre["n"] for a in ARMS):
+        out["verdict"] = "INCOMPLETE"
+        return out
+    (s, ns), (b, nb), (c, nc) = score["skill"], score["none"], score["control"]
+    out["p_vs_none"] = round(fisher_greater(s, ns, b, nb), 4)
+    out["p_vs_control"] = round(fisher_greater(s, ns, c, nc), 4)
+    if s == 0 and b == 0 and c == 0:
+        out["verdict"] = "FLOOR"
+    elif b / nb >= pre["ceiling"]:
+        out["verdict"] = "CEILING"
+    elif out["p_vs_none"] <= pre["alpha"] and out["p_vs_control"] <= pre["alpha"]:
+        out["verdict"] = "WORTHWHILE"
+    elif s / ns <= b / nb:
+        out["verdict"] = "NOT_WORTH"
+    else:
+        out["verdict"] = "INCONCLUSIVE"
+    return out
+
+
+def _verdict_score(task_id, t, pre, rows, fresh, by):
+    cfg, mx = pre["score"], len(pre["score"]["kills"])
+    scores = {a: [run_score(r, cfg) for r in by[a]] for a in ARMS}
+    mean = {a: (sum(scores[a]) / len(scores[a]) if scores[a] else 0.0) for a in ARMS}
+    out = {"task": task_id, "skill": t["skill"], "model": fresh[0]["model"] if fresh else None, "mode": "score", "max": mx, "scores": scores,
+           "score": {a: (round(mean[a], 2), len(scores[a])) for a in ARMS}, "stale_rows": len(rows) - len(fresh), "n": pre["n"],
+           "cell": {a: f"{mean[a]:.1f}/{mx}" for a in ARMS},
+           "cost_usd": round(math.fsum(float(r.get("cost_usd") or 0) for r in fresh), 2),
+           "models": sorted({r.get("model", "?") for r in fresh})}
+    if not fresh:
+        out["verdict"] = "NOT_RUN"
+        return out
+    if any(len(scores[a]) < pre["n"] for a in ARMS):
+        out["verdict"] = "INCOMPLETE"
+        return out
+    out["p_vs_none"] = round(perm_p_greater(scores["skill"], scores["none"]), 4)
+    out["p_vs_control"] = round(perm_p_greater(scores["skill"], scores["control"]), 4)
+    if all(m == 0 for m in mean.values()):
+        out["verdict"] = "FLOOR"
+    elif mean["none"] >= pre["ceiling"] * mx:
+        out["verdict"] = "CEILING"
+    elif mean["skill"] > max(mean["none"], mean["control"]) and out["p_vs_none"] <= pre["alpha"] and out["p_vs_control"] <= pre["alpha"]:
+        out["verdict"] = "WORTHWHILE"
+    elif mean["skill"] <= mean["none"]:
+        out["verdict"] = "NOT_WORTH"
+    else:
+        out["verdict"] = "INCONCLUSIVE"
+    return out
+
+
+def validate_ledger():
+    """-> list of problems: a ledger row that could not have been written by run.py"""
+    probs = []
+    for p in sorted(glob.glob(os.path.join(LEDGER, "*.jsonl"))):
+        tid = os.path.basename(p)[:-6]
+        if tid not in T.TASKS:
+            probs.append(f"{p}: no task {tid!r}")
+            continue
+        seen, cur = set(), current_hashes(tid)
+        for n, line in enumerate(_read(p).decode().splitlines(), 1):
+            if not line.strip():
+                continue
+            try:
+                r = json.loads(line)
+            except ValueError:
+                probs.append(f"{p}:{n}: not JSON")
+                continue
+            need = {"task", "arm", "i", "finished", "checks", "hashes", "model", "git_head", "date"}
+            if need - set(r):
+                probs.append(f"{p}:{n}: missing {sorted(need - set(r))}")
+                continue
+            if r["task"] != tid or r["arm"] not in ARMS:
+                probs.append(f"{p}:{n}: wrong task or arm")
+            if "--model" not in r["model"]:
+                probs.append(f"{p}:{n}: model not pinned")
+            key = (r["arm"], r["i"], json.dumps(r["hashes"], sort_keys=True), r["model"])
+            if key in seen:
+                probs.append(f"{p}:{n}: duplicate run {key[:2]}")
+            seen.add(key)
+            # stale rows (older task/skill) were graded with the checks of their time: only current rows must have today's
+            missing = [c for c in T.TASKS[tid]["prereg"]["primary"] if c not in r["checks"]] if r["hashes"] == cur else []
+            if r["hashes"] == cur and "score" in T.TASKS[tid]["prereg"] and r.get("score") != run_score(r, T.TASKS[tid]["prereg"]["score"]):
+                probs.append(f"{p}:{n}: stored score {r.get('score')} != recomputed from checks")
+            if missing:
+                probs.append(f"{p}:{n}: primary checks not graded: {missing}")
+    return probs
+
+
+def main(argv):
+    res = [v for t in T.TASKS for v in verdict_all(t)]
+    probs = validate_ledger()
+    if "--json" in argv:
+        print(json.dumps({"verdicts": res, "problems": probs}, indent=1))
+    else:
+        for v in res:
+            sc = " ".join(f"{a} {v['cell'][a]}" for a in ARMS)
+            p = f" p(vs none)={v.get('p_vs_none')} p(vs control)={v.get('p_vs_control')}" if "p_vs_none" in v else ""
+            print(f"{v['task']:18} {v['verdict']:12} {sc}{p} stale={v['stale_rows']} ${v['cost_usd']} {model_name(v['model']) if v.get('model') else ''}")
+        for x in probs:
+            print("LEDGER PROBLEM " + x)
+    return 1 if probs else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

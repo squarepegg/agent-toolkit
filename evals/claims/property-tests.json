@@ -1,0 +1,63 @@
+{
+ "skill": "property-tests",
+ "claims": [
+  {
+   "id": "dumbest-impl",
+   "quote": "what is the dumbest implementation that passes these tests?",
+   "kind": "witness",
+   "by": [
+    "pt-lookup-of-rows"
+   ]
+  },
+  {
+   "id": "round-trip",
+   "quote": "Round-trip: decode(encode(x)) == x",
+   "kind": "witness",
+   "by": [
+    "pt-round-trip"
+   ]
+  },
+  {
+   "id": "idempotence",
+   "quote": "applying the same event twice gives the same state",
+   "kind": "witness",
+   "by": [
+    "pt-idempotence"
+   ]
+  },
+  {
+   "id": "edge-generators",
+   "quote": "cover the edge cases on purpose (empty, max size, unicode, duplicates, skewed keys), not only uniform random values",
+   "kind": "witness",
+   "by": [
+    "pt-edge-generators"
+   ]
+  },
+  {
+   "id": "agent-tests-kill-mutants",
+   "quote": "Example tests let an implementation cheat.",
+   "kind": "model",
+   "by": [
+    "property-tests"
+   ]
+  },
+  {
+   "id": "existing-library",
+   "quote": "Check the repo's build file for an existing library before adding one.",
+   "kind": "policy",
+   "why": "A convention."
+  },
+  {
+   "id": "keep-shrunk-case",
+   "quote": "When a failing case is found and shrunk, keep it as a regression example test.",
+   "kind": "policy",
+   "why": "A convention; its value is regression protection, which any example test gives."
+  },
+  {
+   "id": "stronger-types",
+   "quote": "Stronger types would make many of these properties unnecessary",
+   "kind": "gap",
+   "why": "No witness yet (would need a typed language in CI)."
+  }
+ ]
+}

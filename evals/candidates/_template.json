@@ -3,6 +3,8 @@
  "source": "https://github.com/OWNER/REPO",
  "claim": "Loading this outside skill answers the dst probes correctly more often than no skill",
  "skill": "dst",
+ "problem": "short-slug for the recurring problem this attempts to fix (evals/memory.py history SKILL PROBLEM lists prior attempts)",
+ "predicted": "what you expect before the run, e.g. dev gain >= 2 with no heldout loss",
  "fetch": {"repo": "https://github.com/OWNER/REPO.git", "ref": "0000000000000000000000000000000000000000"},
  "with_path": "skills/some-skill",
  "samples": 3,

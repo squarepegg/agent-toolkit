@@ -1,0 +1,82 @@
+{
+ "skill": "correctness-first",
+ "claims": [
+  {
+   "id": "bank-test",
+   "quote": "N accounts hold a fixed total. Workers make random transfers inside transactions. A reader keeps summing the balances, and the total must never change.",
+   "kind": "witness",
+   "by": [
+    "cf-bank-conservation"
+   ]
+  },
+  {
+   "id": "concurrent-checker",
+   "quote": "Run invariant checks concurrently with the operations, plus a final check once the system is quiescent.",
+   "kind": "witness",
+   "by": [
+    "cf-concurrent-checker"
+   ]
+  },
+  {
+   "id": "drunken-walk",
+   "quote": "Don't pick operations uniformly at random. That's a \"drunken walk\"",
+   "kind": "witness",
+   "by": [
+    "cf-long-runs"
+   ]
+  },
+  {
+   "id": "long-runs",
+   "quote": "long runs of the same operation",
+   "kind": "witness",
+   "by": [
+    "cf-long-runs"
+   ]
+  },
+  {
+   "id": "faults",
+   "quote": "Bugs show up under faults, not on a laptop.",
+   "kind": "witness",
+   "by": [
+    "cf-faults"
+   ]
+  },
+  {
+   "id": "by-construction",
+   "quote": "Which invalid states can the types, schema or architecture make impossible?",
+   "kind": "witness",
+   "by": [
+    "cf-faults",
+    "cf-bank-conservation"
+   ]
+  },
+  {
+   "id": "pipeline-invariant",
+   "quote": "Pipeline: for each id, events in = rows stored + rows rejected.",
+   "kind": "witness",
+   "by": [
+    "cf-faults"
+   ]
+  },
+  {
+   "id": "gray-failure",
+   "quote": "Down vs gray failure.",
+   "kind": "gap",
+   "why": "Naming a gray-failure signal is design advice; the outcome task grades it only as a secondary check (names_gray_failure)."
+  },
+  {
+   "id": "agent-catches-lost-update",
+   "quote": "Before any code exists, decide what \"working\" means and how you will know it is working.",
+   "kind": "model",
+   "by": [
+    "correctness-first"
+   ]
+  },
+  {
+   "id": "spike",
+   "quote": "Do a throwaway spike, a few hours to 2 days, before committing to a design.",
+   "kind": "policy",
+   "why": "Process advice."
+  }
+ ]
+}

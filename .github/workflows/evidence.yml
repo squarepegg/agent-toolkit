@@ -1,0 +1,32 @@
+name: evidence
+# Free and deterministic (no model, no network): proves each skill's checkable advice and keeps the laptop evidence honest.
+on:
+  push:
+    paths: ["skills/**", "evals/**", ".github/workflows/**"]
+  pull_request:
+    paths: ["skills/**", "evals/**", ".github/workflows/**"]
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
+      - name: advice witnesses (ignored misses, followed catches, fixed passes)
+        run: uv run --no-project --python ${{ matrix.python }} evals/witness/run.py
+      - name: claims registry (quotes match the skills, every claim has evidence or says why not)
+        run: uv run --no-project --python ${{ matrix.python }} evals/check_claims.py
+      - name: outcome graders pinned both ways, verdict math, ledger tampering
+        run: uv run --no-project --python ${{ matrix.python }} evals/outcome/test_outcome.py
+      - name: committed ledger is valid; verdicts recomputed
+        run: uv run --no-project --python ${{ matrix.python }} evals/outcome/verdict.py
+      - name: evals/STATUS.md matches claims + ledger
+        run: uv run --no-project --python ${{ matrix.python }} evals/status.py --check
+      - name: the evidence tooling cannot be fooled
+        run: uv run --no-project --python ${{ matrix.python }} evals/test_evidence.py

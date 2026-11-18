@@ -50,11 +50,17 @@ some need `ast-grep` on `PATH`.
 
 ### Checks and evals (all skills)
 
+**Is each skill worth loading?** See `evals/README.md` and the generated `evals/STATUS.md`. In short: advice witnesses
+(free, CI) prove the checkable advice is correct (ignoring it misses a planted bug, following it catches it, the fixed
+code passes); outcome tasks (laptop, committed ledger) measure whether an agent does the work better with the skill than
+without it or with a same-length control. CI never calls a model.
+
 - `python3 scripts/check_skills.py`: deterministic, stdlib only, run in CI. It checks frontmatter, unique names, a
   README install line for each skill, no private strings, and, where `skills/<dir>/tests/golden.json` exists: pinned
   text, a size budget, and hand-offs to other skills (each one must exist and still be named in the SKILL.md).
   `--self-test` plants one bug per check in a temp copy and fails if any survives.
-- `python3 scripts/skill_ab.py <dir> [--samples 3]`: live A/B (costs tokens). It answers `skills/<dir>/evals/probes.json`
+- `python3 scripts/skill_ab.py <dir> [--samples 3]`: smoke test only (costs tokens): does the skill's text reach the
+  model? Keyword recall is not evidence of value; that is what `evals/outcome/` measures. It answers `skills/<dir>/evals/probes.json`
   in fresh `pi` sessions, once with only that skill loaded and once with none, and grades with fixed substring groups,
   never a model. Results go to `results/` (gitignored). Measured deltas are in each skill's `evals/README.md`.
   `--with-path DIR` loads another skill in the `with` arm (same probes); `--out FILE` sets the results file.
@@ -69,8 +75,9 @@ some need `ast-grep` on `PATH`.
 
 | Workflow | When | What | Model calls |
 |---|---|---|---|
+| `evidence.yml` | push/PR | advice witnesses, claims registry, outcome graders + ledger verdicts, `evals/STATUS.md` current (see `evals/README.md`) | none |
 | `skills.yml`, `eval-gate.yml`, `skill-suites.yml` | push/PR | skill checks; `evals/test_gate.py` (verdicts, registration, properties, `skill_ab` -> gate through `evals/fake_pi.py`); `scout/test_scout.py`; the adversarial-sdlc and evidence-gated suites | none |
-| `eval.yml` | PR labelled `eval`, or by hand | each added/changed `evals/candidates/<id>.json`: `evals/run_candidate.py` then `evals/gate.py`; verdict commented on the PR | yes: variable `EVAL_MODEL`, secret `ANTHROPIC_API_KEY` |
+| `eval.yml` | PR touching `evals/candidates/`, or by hand | each added/changed `evals/candidates/<id>.json`: `evals/gate.py` on its committed `evals/candidates/results/<id>.json` (produced on a laptop by `evals/run_candidate.py`) | none |
 | `scout.yml` | Mondays | `scout/scout.py`: GitHub, HN, arXiv (`scout/sources.json`), minus anything already seen, ranked by keywords + stars gained per week (from the star snapshot hidden in the previous issue) ; papers listed separately from Semantic Scholar searches (last 6 months, most cited first, at least 10 citations), as a `scout` issue. Optional secret `S2_API_KEY` avoids the shared rate limit | none |
 | `triage.yml` | after `scout.yml`, or by hand | `scout/triage.py`: a model nominates each new scout item `A_use` / `B_adopt_ideas` / `C_discard` (strict JSON schema, then fixed guardrails: A needs a GitHub repo, confidence >= 0.6 and an overlapping skill with probes), appends it to `evals/triage/<date>.jsonl` and opens one PR via `scripts/triage_pr.sh`; an A also drafts `evals/candidates/_draft-<id>.json`. It never adopts: only `evals/gate.py` can. Needs `EVAL_MODEL`, `ANTHROPIC_API_KEY` and "Allow Actions to create PRs"; skips without them | tokens (capped by `--max-cost`) |
 
@@ -78,12 +85,12 @@ some need `ast-grep` on `PATH`.
    an optional outside skill pinned to a full commit sha (`fetch` + `with_path`), samples, thresholds.
 2. Commit it before running. The gate refuses a candidate file that differs from HEAD, probes that changed since the
    run, and an unpinned model.
-3. Open a PR and label it `eval`. Verdicts: `ADOPT` (exit 0); `CEILING`, `NO_DELTA`, `REGRESSION`, `TOO_COSTLY`,
+3. Run `evals/run_candidate.py` on a laptop, commit `evals/candidates/results/<id>.json`, and open a PR (`eval.yml` gates it). Verdicts: `ADOPT` (exit 0); `CEILING`, `NO_DELTA`, `REGRESSION`, `TOO_COSTLY`,
    `INCONCLUSIVE` (exit 1). Probes marked `"split": "heldout"` must not regress and are never tuned against.
 4. Not adopted: paste the printed line into `evals/negative-results.md` and drop the change.
 
 Local: `EVAL_PI_ARGS='["--model","provider/id"]' python3 evals/run_candidate.py evals/candidates/dst-skill.json`, then
-`python3 evals/gate.py evals/candidates/dst-skill.json results/dst-skill.json`.
+`python3 evals/gate.py evals/candidates/dst-skill.json evals/candidates/results/dst-skill.json`.
 
 ## Snippets
 
